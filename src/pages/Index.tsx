@@ -2,6 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Check, Calendar, Users, ArrowRight } from "lucide-react";
 import {
   Card,
   CardContent,
@@ -14,8 +15,8 @@ import {
 const Index = () => {
   return (
     <>
-      {/* Hero Section */}
-      <section className="py-16 md:py-24 bg-gradient-to-b from-background to-accent">
+      {/* Hero Section - Updated with light blue gradient background */}
+      <section className="py-16 md:py-24 bg-gradient-to-b from-agile-skyblue/20 to-white">
         <div className="container mx-auto px-4 flex flex-col md:flex-row items-center">
           <div className="md:w-1/2 mb-10 md:mb-0">
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
@@ -44,7 +45,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Services Section */}
+      {/* Services Section - Updated with service icons */}
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -58,6 +59,9 @@ const Index = () => {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <Card>
               <CardHeader>
+                <div className="service-icon mb-4 inline-flex">
+                  <Users size={24} />
+                </div>
                 <CardTitle>Team Coaching</CardTitle>
                 <CardDescription>
                   Hands-on coaching for agile teams
@@ -70,14 +74,20 @@ const Index = () => {
                 </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/services/coaching">Learn More</Link>
+                <Button variant="outline" asChild className="w-full group">
+                  <Link to="/services/coaching" className="flex justify-between items-center">
+                    <span>Learn More</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
 
             <Card>
               <CardHeader>
+                <div className="service-icon mb-4 inline-flex">
+                  <Calendar size={24} />
+                </div>
                 <CardTitle>Agile Training</CardTitle>
                 <CardDescription>
                   Certified scrum and agile courses
@@ -90,14 +100,20 @@ const Index = () => {
                 </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/services/training">Learn More</Link>
+                <Button variant="outline" asChild className="w-full group">
+                  <Link to="/services/training" className="flex justify-between items-center">
+                    <span>Learn More</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
 
             <Card>
               <CardHeader>
+                <div className="service-icon mb-4 inline-flex">
+                  <Users size={24} />
+                </div>
                 <CardTitle>Agile Consulting</CardTitle>
                 <CardDescription>
                   Strategic consulting services
@@ -110,14 +126,20 @@ const Index = () => {
                 </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/services/consulting">Learn More</Link>
+                <Button variant="outline" asChild className="w-full group">
+                  <Link to="/services/consulting" className="flex justify-between items-center">
+                    <span>Learn More</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
 
             <Card>
               <CardHeader>
+                <div className="service-icon mb-4 inline-flex">
+                  <Users size={24} />
+                </div>
                 <CardTitle>Transformation</CardTitle>
                 <CardDescription>
                   Enterprise agile transformation
@@ -130,8 +152,11 @@ const Index = () => {
                 </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" asChild className="w-full">
-                  <Link to="/services/transformation">Learn More</Link>
+                <Button variant="outline" asChild className="w-full group">
+                  <Link to="/services/transformation" className="flex justify-between items-center">
+                    <span>Learn More</span>
+                    <ArrowRight size={16} className="group-hover:translate-x-1 transition-transform" />
+                  </Link>
                 </Button>
               </CardFooter>
             </Card>
@@ -139,8 +164,8 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Featured Courses */}
-      <section className="py-16 bg-accent">
+      {/* Featured Courses - Updated with improved card styling */}
+      <section className="py-16 bg-secondary">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
             <h2 className="text-3xl font-bold mb-3">Featured Courses</h2>
@@ -150,7 +175,7 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <Card>
+            <Card className="bg-white">
               <CardHeader>
                 <CardTitle>Certified ScrumMaster</CardTitle>
                 <CardDescription>
@@ -171,7 +196,7 @@ const Index = () => {
               </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="bg-white">
               <CardHeader>
                 <CardTitle>Product Owner Fundamentals</CardTitle>
                 <CardDescription>
@@ -192,7 +217,7 @@ const Index = () => {
               </CardFooter>
             </Card>
 
-            <Card>
+            <Card className="bg-white">
               <CardHeader>
                 <CardTitle>Agile Leadership</CardTitle>
                 <CardDescription>
@@ -222,7 +247,7 @@ const Index = () => {
         </div>
       </section>
 
-      {/* Testimonials */}
+      {/* Testimonials - Updated with light green backgrounds */}
       <section className="py-16 bg-background">
         <div className="container mx-auto px-4">
           <div className="text-center mb-12">
@@ -233,7 +258,7 @@ const Index = () => {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            <Card className="bg-primary/5">
+            <Card className="testimonial-card">
               <CardContent className="pt-6">
                 <div className="flex items-center mb-4">
                   <div className="flex-shrink-0">
@@ -253,7 +278,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-primary/5">
+            <Card className="testimonial-card">
               <CardContent className="pt-6">
                 <div className="flex items-center mb-4">
                   <div className="flex-shrink-0">
@@ -273,7 +298,7 @@ const Index = () => {
               </CardContent>
             </Card>
 
-            <Card className="bg-primary/5">
+            <Card className="testimonial-card">
               <CardContent className="pt-6">
                 <div className="flex items-center mb-4">
                   <div className="flex-shrink-0">

@@ -9,7 +9,7 @@ const Footer = () => {
     <footer className="bg-primary text-primary-foreground">
       <div className="container py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
         <div className="space-y-4">
-          <h3 className="text-xl font-bold">Agile Coaching</h3>
+          <h3 className="text-xl font-bold">Altogether<span className="opacity-80">Agile</span></h3>
           <p className="text-sm text-primary-foreground/80">
             Professional agile coaching and training solutions to transform your organization.
           </p>
@@ -46,7 +46,7 @@ const Footer = () => {
       
       <div className="border-t border-primary-foreground/20">
         <div className="container py-6 flex flex-col md:flex-row justify-between items-center text-sm text-primary-foreground/70">
-          <p>&copy; {currentYear} Agile Coaching. All rights reserved.</p>
+          <p>&copy; {currentYear} Altogether Agile. All rights reserved.</p>
           <div className="flex space-x-4 mt-4 md:mt-0">
             <Link to="/privacy-policy" className="hover:underline">Privacy Policy</Link>
             <Link to="/terms-of-service" className="hover:underline">Terms of Service</Link>

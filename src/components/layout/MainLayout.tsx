@@ -7,7 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 
 const MainLayout: React.FC = () => {
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
       <main className="flex-1">
         <Outlet />

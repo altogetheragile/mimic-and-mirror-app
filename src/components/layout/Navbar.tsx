@@ -30,8 +30,8 @@ const Navbar = () => {
     <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center">
-          <Link to="/" className="text-xl font-bold">
-            Agile Coaching
+          <Link to="/" className="text-xl font-bold text-primary">
+            Altogether<span className="text-foreground">Agile</span>
           </Link>
           
           <nav className="hidden md:flex ml-6 space-x-4">
@@ -44,11 +44,11 @@ const Navbar = () => {
                       <li className="row-span-3">
                         <NavigationMenuLink asChild>
                           <Link
-                            className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-muted/50 to-muted p-6 no-underline outline-none focus:shadow-md"
+                            className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-agile-lightgreen to-secondary p-6 no-underline outline-none focus:shadow-md"
                             to="/services"
                           >
                             <div className="mb-2 mt-4 text-lg font-medium">
-                              Agile Coaching
+                              Altogether Agile
                             </div>
                             <p className="text-sm leading-tight text-muted-foreground">
                               Professional coaching to transform your team's agile capabilities
@@ -127,7 +127,7 @@ const Navbar = () => {
                 <Link to="/login">Log In</Link>
               </Button>
               <Button asChild>
-                <Link to="/signup">Sign Up</Link>
+                <Link to="/signup">Get Started</Link>
               </Button>
             </>
           )}
@@ -164,7 +164,7 @@ const Navbar = () => {
                     <Link to="/login">Log In</Link>
                   </Button>
                   <Button variant="default" className="w-full" asChild onClick={closeMenu}>
-                    <Link to="/signup">Sign Up</Link>
+                    <Link to="/signup">Get Started</Link>
                   </Button>
                 </>
               )}
