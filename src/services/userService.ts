@@ -123,19 +123,25 @@ export async function getAllUsers() {
       description: usersError.message,
       variant: "destructive",
     });
-    // Continue without emails
+    return profiles.map((profile: any) => {
+      return {
+        ...profile,
+        email: "",
+        role: "student"
+      };
+    });
   }
 
   // Combine the data
-  const combinedUsers = profiles.map(profile => {
-    const userRoles = roles.filter(r => r.user_id === profile.id);
+  const combinedUsers = profiles.map((profile: any) => {
+    const userRoles = roles ? roles.filter((r: any) => r.user_id === profile.id) : [];
     const highestRole = userRoles.length > 0 ? 
-      userRoles.sort((a, b) => {
+      userRoles.sort((a: any, b: any) => {
         const roleRank = { admin: 3, instructor: 2, student: 1 };
         return roleRank[b.role as keyof typeof roleRank] - roleRank[a.role as keyof typeof roleRank];
       })[0].role : 'student';
     
-    const user = users?.users.find(u => u.id === profile.id);
+    const user = users?.users.find((u: any) => u.id === profile.id);
     
     return {
       ...profile,

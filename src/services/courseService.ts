@@ -16,6 +16,7 @@ export type Course = {
   location: string | null;
   prerequisites: string | null;
   is_featured: boolean;
+  is_published: boolean | null;
   start_date: string | null;
   end_date: string | null;
   capacity: number | null;
