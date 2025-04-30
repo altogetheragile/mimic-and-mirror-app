@@ -20,6 +20,7 @@ import Courses from "@/pages/Courses";
 import CourseDetail from "@/pages/CourseDetail";
 import Dashboard from "@/pages/Dashboard";
 import AdminDashboard from "@/pages/AdminDashboard";
+import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -46,7 +47,7 @@ const App = () => (
               {/* Protected Routes - User */}
               <Route element={<ProtectedRoute />}>
                 <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile" element={<Dashboard />} />
+                <Route path="/profile" element={<Profile />} />
                 <Route path="/my-courses" element={<Dashboard />} />
               </Route>
               

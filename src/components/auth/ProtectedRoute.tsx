@@ -6,21 +6,23 @@ import { Loader } from "lucide-react";
 
 interface ProtectedRouteProps {
   requireAdmin?: boolean;
+  requireInstructor?: boolean;
   children?: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ 
   requireAdmin = false,
+  requireInstructor = false,
   children 
 }) => {
-  const { user, loading, isAdmin } = useAuth();
+  const { user, loading, isAdmin, isInstructor } = useAuth();
   const location = useLocation();
 
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
-        <Loader className="h-8 w-8 animate-spin" />
-        <span className="ml-2">Loading...</span>
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+        <span className="ml-2 text-lg font-medium">Loading...</span>
       </div>
     );
   }
@@ -32,6 +34,12 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireAdmin && !isAdmin) {
     // Redirect to dashboard if not an admin
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  if (requireInstructor && !isInstructor && !isAdmin) {
+    // Redirect to dashboard if not an instructor or admin
+    // Note: Admins can access instructor routes
     return <Navigate to="/dashboard" replace />;
   }
 
