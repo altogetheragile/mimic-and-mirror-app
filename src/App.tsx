@@ -7,6 +7,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { AuthProvider } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
+import AdminLayout from "@/components/layout/AdminLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
 
 // Pages
@@ -19,9 +20,15 @@ import ResetPassword from "@/pages/ResetPassword";
 import Courses from "@/pages/Courses";
 import CourseDetail from "@/pages/CourseDetail";
 import Dashboard from "@/pages/Dashboard";
-import AdminDashboard from "@/pages/AdminDashboard";
 import Profile from "@/pages/Profile";
 import NotFound from "@/pages/NotFound";
+
+// Admin Pages
+import AdminDashboard from "@/pages/admin/AdminDashboard";
+import AdminCourses from "@/pages/admin/AdminCourses";
+import AdminUsers from "@/pages/admin/AdminUsers";
+import AdminTestimonials from "@/pages/admin/AdminTestimonials";
+import AdminSettings from "@/pages/admin/AdminSettings";
 
 const queryClient = new QueryClient();
 
@@ -42,7 +49,7 @@ const App = () => (
               <Route path="/forgot-password" element={<ForgotPassword />} />
               <Route path="/reset-password" element={<ResetPassword />} />
               <Route path="/courses" element={<Courses />} />
-              <Route path="/courses/:courseId" element={<CourseDetail />} />
+              <Route path="/courses/:courseSlug" element={<CourseDetail />} />
               
               {/* Protected Routes - User */}
               <Route element={<ProtectedRoute />}>
@@ -53,9 +60,14 @@ const App = () => (
               
               {/* Protected Routes - Admin */}
               <Route element={<ProtectedRoute requireAdmin />}>
-                <Route path="/admin" element={<AdminDashboard />} />
-                <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                {/* Add more admin routes as needed */}
+                <Route element={<AdminLayout />}>
+                  <Route path="/admin" element={<AdminDashboard />} />
+                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
+                  <Route path="/admin/courses" element={<AdminCourses />} />
+                  <Route path="/admin/users" element={<AdminUsers />} />
+                  <Route path="/admin/testimonials" element={<AdminTestimonials />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                </Route>
               </Route>
               
               {/* Not Found */}
