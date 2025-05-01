@@ -48,7 +48,7 @@ export const blogService = {
       const { data, error } = await query;
       
       if (error) throw error;
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch blog posts");
     }
@@ -64,7 +64,7 @@ export const blogService = {
         .single();
       
       if (error) throw error;
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch blog post");
     }
@@ -99,7 +99,7 @@ export const blogService = {
       
       if (error) throw error;
       handleApiSuccess("Blog post updated successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to update blog post");
     }
@@ -115,7 +115,7 @@ export const blogService = {
       
       if (error) throw error;
       handleApiSuccess("Blog post deleted successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to delete blog post");
     }
@@ -136,7 +136,7 @@ export const blogService = {
       
       if (error) throw error;
       handleApiSuccess("Blog post published successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to publish blog post");
     }
@@ -156,7 +156,7 @@ export const blogService = {
       
       if (error) throw error;
       handleApiSuccess("Blog post unpublished successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to unpublish blog post");
     }
@@ -190,7 +190,7 @@ export const mediaService = {
       const { data, error } = await query;
       
       if (error) throw error;
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch media");
     }
@@ -206,7 +206,7 @@ export const mediaService = {
         .single();
       
       if (error) throw error;
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch media item");
     }
@@ -277,7 +277,7 @@ export const mediaService = {
       if (error) throw error;
       
       handleApiSuccess("Media updated successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to update media");
     }
@@ -295,7 +295,7 @@ export const mediaService = {
       if (error) throw error;
       
       handleApiSuccess("Media deleted successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to delete media");
     }
@@ -321,7 +321,7 @@ export const settingsService = {
         .select("*");
       
       if (error) throw error;
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch settings");
     }
@@ -337,7 +337,7 @@ export const settingsService = {
         .single();
       
       if (error) throw error;
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch setting");
     }
@@ -363,7 +363,7 @@ export const settingsService = {
       if (error) throw error;
       
       handleApiSuccess("Setting updated successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to update setting");
     }
