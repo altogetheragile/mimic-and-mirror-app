@@ -64,7 +64,7 @@ export const blogService = {
         .single();
       
       if (error) throw error;
-      return { data: data ?? null, error: null };
+      return { data, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch blog post");
     }
@@ -81,7 +81,7 @@ export const blogService = {
       
       if (error) throw error;
       handleApiSuccess("Blog post created successfully");
-      return { data, error: null };
+      return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to create blog post");
     }
