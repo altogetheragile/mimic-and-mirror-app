@@ -43,7 +43,7 @@ export type BlogPostFormValues = z.infer<typeof blogPostSchema>;
 
 interface BlogPostFormProps {
   initialData?: any;
-  onSubmit: (data: BlogPostFormValues) => void;
+  onSubmit: (data: BlogPostFormValues & { author_id: string }) => void;
 }
 
 export function BlogPostForm({ initialData, onSubmit }: BlogPostFormProps) {
