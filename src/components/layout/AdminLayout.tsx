@@ -6,7 +6,9 @@ import {
   BookOpen,
   Users,
   MessageSquare,
-  Settings
+  Settings,
+  FileText,
+  Image
 } from "lucide-react";
 
 const AdminLayout = () => {
@@ -21,7 +23,7 @@ const AdminLayout = () => {
             </div>
             
             <nav className="space-y-1">
-              <NavItem to="/admin" icon={<LayoutDashboard className="h-5 w-5" />} end>
+              <NavItem to="/admin/dashboard" icon={<LayoutDashboard className="h-5 w-5" />} end>
                 Dashboard
               </NavItem>
               <NavItem to="/admin/courses" icon={<BookOpen className="h-5 w-5" />}>
@@ -32,6 +34,12 @@ const AdminLayout = () => {
               </NavItem>
               <NavItem to="/admin/testimonials" icon={<MessageSquare className="h-5 w-5" />}>
                 Testimonials
+              </NavItem>
+              <NavItem to="/admin/blog" icon={<FileText className="h-5 w-5" />}>
+                Blog Posts
+              </NavItem>
+              <NavItem to="/admin/media" icon={<Image className="h-5 w-5" />}>
+                Media
               </NavItem>
               <NavItem to="/admin/settings" icon={<Settings className="h-5 w-5" />}>
                 Settings

@@ -29,6 +29,8 @@ import AdminCourses from "@/pages/admin/AdminCourses";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminTestimonials from "@/pages/admin/AdminTestimonials";
 import AdminSettings from "@/pages/admin/AdminSettings";
+import AdminBlog from "@/pages/admin/AdminBlog";
+import AdminMedia from "@/pages/admin/AdminMedia";
 
 const queryClient = new QueryClient();
 
@@ -74,6 +76,8 @@ const App = () => (
                 <Route path="courses" element={<AdminCourses />} />
                 <Route path="users" element={<AdminUsers />} />
                 <Route path="testimonials" element={<AdminTestimonials />} />
+                <Route path="blog" element={<AdminBlog />} />
+                <Route path="media" element={<AdminMedia />} />
                 <Route path="settings" element={<AdminSettings />} />
               </Route>
               
