@@ -73,9 +73,14 @@ export function BlogPostForm({ initialData, onSubmit }: BlogPostFormProps) {
   };
 
   const handleFormSubmit = (data: BlogPostFormValues) => {
+  if (!user?.id) {
+    console.error("User is not authenticated.");
+    return;
+  }
+
   onSubmit({
     ...data,
-    author_id: user?.id,
+    author_id: user.id,
   });
 };
 
