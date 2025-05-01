@@ -48,7 +48,7 @@ export const blogService = {
       const { data, error } = await query;
       
       if (error) throw error;
-      return { data, error: null };
+       return { data: data ?? null, error: null };
     } catch (error) {
       return handleApiError(error, "Failed to fetch blog posts");
     }
