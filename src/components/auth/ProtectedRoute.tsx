@@ -34,12 +34,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   if (requireAdmin && !isAdmin) {
     // Redirect to dashboard if not an admin
+    console.log("User is not admin, redirecting to dashboard");
     return <Navigate to="/dashboard" replace />;
   }
 
   if (requireInstructor && !isInstructor && !isAdmin) {
     // Redirect to dashboard if not an instructor or admin
     // Note: Admins can access instructor routes
+    console.log("User is not instructor or admin, redirecting to dashboard");
     return <Navigate to="/dashboard" replace />;
   }
 

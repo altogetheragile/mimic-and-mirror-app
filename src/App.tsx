@@ -1,7 +1,7 @@
 
 import React from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -58,16 +58,23 @@ const App = () => (
                 <Route path="/my-courses" element={<Dashboard />} />
               </Route>
               
+              {/* Special route for admin that redirects to /admin/dashboard */}
+              <Route 
+                path="/admin" 
+                element={
+                  <ProtectedRoute requireAdmin>
+                    <Navigate to="/admin/dashboard" replace />
+                  </ProtectedRoute>
+                } 
+              />
+
               {/* Protected Routes - Admin */}
-              <Route element={<ProtectedRoute requireAdmin />}>
-                <Route element={<AdminLayout />}>
-                  <Route path="/admin" element={<AdminDashboard />} />
-                  <Route path="/admin/dashboard" element={<AdminDashboard />} />
-                  <Route path="/admin/courses" element={<AdminCourses />} />
-                  <Route path="/admin/users" element={<AdminUsers />} />
-                  <Route path="/admin/testimonials" element={<AdminTestimonials />} />
-                  <Route path="/admin/settings" element={<AdminSettings />} />
-                </Route>
+              <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminLayout /></ProtectedRoute>}>
+                <Route path="dashboard" element={<AdminDashboard />} />
+                <Route path="courses" element={<AdminCourses />} />
+                <Route path="users" element={<AdminUsers />} />
+                <Route path="testimonials" element={<AdminTestimonials />} />
+                <Route path="settings" element={<AdminSettings />} />
               </Route>
               
               {/* Not Found */}

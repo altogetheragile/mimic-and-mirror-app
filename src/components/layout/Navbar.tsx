@@ -1,174 +1,194 @@
 
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import { Button } from "@/components/ui/button";
+import { Link, NavLink, useNavigate } from "react-router-dom";
 import { Menu, X } from "lucide-react";
-import { cn } from "@/lib/utils";
-import {
-  NavigationMenu,
-  NavigationMenuContent,
-  NavigationMenuItem,
-  NavigationMenuLink,
-  NavigationMenuList,
-  NavigationMenuTrigger,
-} from "@/components/ui/navigation-menu";
+import { Button } from "@/components/ui/button";
 import { useAuth } from "@/context/AuthContext";
+import AdminNavLink from "./AdminNavLink";
 
 const Navbar = () => {
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
 
-  const toggleMenu = () => {
-    setIsMenuOpen(!isMenuOpen);
-  };
+  const toggleMenu = () => setIsOpen(!isOpen);
+  const closeMenu = () => setIsOpen(false);
 
-  const closeMenu = () => {
-    setIsMenuOpen(false);
+  const handleSignOut = async () => {
+    await signOut();
+    navigate("/");
   };
 
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center">
-          <Link to="/" className="text-xl font-bold text-primary">
-            Altogether<span className="text-foreground">Agile</span>
-          </Link>
+    <header className="bg-background border-b">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between h-16">
+          <div className="flex">
+            <div className="flex-shrink-0 flex items-center">
+              <Link to="/" className="text-xl font-bold">
+                <span className="text-primary">Altogether</span>
+                <span>Agile</span>
+              </Link>
+            </div>
+            <nav className="hidden sm:ml-6 sm:flex sm:space-x-8">
+              <NavLink
+                to="/courses"
+                className={({ isActive }) => 
+                  `flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    isActive 
+                      ? "border-primary text-foreground" 
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                  }`
+                }
+              >
+                Courses
+              </NavLink>
+              <NavLink
+                to="/about"
+                className={({ isActive }) => 
+                  `flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    isActive 
+                      ? "border-primary text-foreground" 
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                  }`
+                }
+              >
+                About
+              </NavLink>
+              <NavLink
+                to="/contact"
+                className={({ isActive }) => 
+                  `flex items-center px-1 pt-1 border-b-2 text-sm font-medium ${
+                    isActive 
+                      ? "border-primary text-foreground" 
+                      : "border-transparent text-muted-foreground hover:text-foreground hover:border-gray-300"
+                  }`
+                }
+              >
+                Contact
+              </NavLink>
+              {/* Admin link will only show for admin users */}
+              <AdminNavLink />
+            </nav>
+          </div>
           
-          <nav className="hidden md:flex ml-6 space-x-4">
-            <NavigationMenu>
-              <NavigationMenuList>
-                <NavigationMenuItem>
-                  <NavigationMenuTrigger>Services</NavigationMenuTrigger>
-                  <NavigationMenuContent>
-                    <ul className="grid gap-3 p-4 w-[400px] md:w-[500px] lg:w-[600px] grid-cols-2">
-                      <li className="row-span-3">
-                        <NavigationMenuLink asChild>
-                          <Link
-                            className="flex h-full w-full select-none flex-col justify-end rounded-md bg-gradient-to-b from-agile-lightgreen to-secondary p-6 no-underline outline-none focus:shadow-md"
-                            to="/services"
-                          >
-                            <div className="mb-2 mt-4 text-lg font-medium">
-                              Altogether Agile
-                            </div>
-                            <p className="text-sm leading-tight text-muted-foreground">
-                              Professional coaching to transform your team's agile capabilities
-                            </p>
-                          </Link>
-                        </NavigationMenuLink>
-                      </li>
-                      <li>
-                        <Link to="/services/coaching" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Team Coaching</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Targeted coaching for agile teams
-                          </p>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/services/training" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Agile Training</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Certified scrum and agile training courses
-                          </p>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/services/consulting" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Agile Consulting</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            Strategic consulting for enterprise agility
-                          </p>
-                        </Link>
-                      </li>
-                      <li>
-                        <Link to="/services/transformation" className="block select-none space-y-1 rounded-md p-3 leading-none no-underline outline-none transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground">
-                          <div className="text-sm font-medium leading-none">Agile Transformation</div>
-                          <p className="line-clamp-2 text-sm leading-snug text-muted-foreground">
-                            End-to-end agile transformation services
-                          </p>
-                        </Link>
-                      </li>
-                    </ul>
-                  </NavigationMenuContent>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/courses" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50">
-                    Courses
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/about" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50">
-                    About
-                  </Link>
-                </NavigationMenuItem>
-                <NavigationMenuItem>
-                  <Link to="/contact" className="group inline-flex h-10 w-max items-center justify-center rounded-md bg-background px-4 py-2 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground focus:bg-accent focus:text-accent-foreground focus:outline-none disabled:pointer-events-none disabled:opacity-50 data-[active]:bg-accent/50 data-[state=open]:bg-accent/50">
-                    Contact
-                  </Link>
-                </NavigationMenuItem>
-              </NavigationMenuList>
-            </NavigationMenu>
-          </nav>
+          <div className="hidden sm:ml-6 sm:flex sm:items-center sm:space-x-4">
+            {user ? (
+              <>
+                <Button variant="ghost" onClick={handleSignOut}>
+                  Log Out
+                </Button>
+                <Button asChild>
+                  <Link to="/dashboard">Dashboard</Link>
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="ghost" asChild>
+                  <Link to="/login">Login</Link>
+                </Button>
+                <Button asChild>
+                  <Link to="/signup">Sign Up</Link>
+                </Button>
+              </>
+            )}
+          </div>
+          
+          <div className="-mr-2 flex items-center sm:hidden">
+            <Button variant="ghost" size="icon" onClick={toggleMenu}>
+              <span className="sr-only">Open main menu</span>
+              {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+            </Button>
+          </div>
         </div>
-
-        <div className="hidden md:flex items-center space-x-2">
-          {user ? (
-            <>
-              <Button variant="ghost" onClick={signOut}>
-                Log Out
-              </Button>
-              <Button asChild>
-                <Link to="/dashboard">Dashboard</Link>
-              </Button>
-            </>
-          ) : (
-            <>
-              <Button variant="ghost" asChild>
-                <Link to="/login">Log In</Link>
-              </Button>
-              <Button asChild>
-                <Link to="/signup">Get Started</Link>
-              </Button>
-            </>
-          )}
-        </div>
-
-        <button className="md:hidden" onClick={toggleMenu}>
-          {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
       </div>
 
-      {/* Mobile Menu */}
-      {isMenuOpen && (
-        <div className="fixed inset-0 top-16 z-30 bg-background md:hidden">
-          <div className="container py-4 flex flex-col space-y-4">
-            <Link to="/" className="px-4 py-2 hover:bg-accent rounded-md" onClick={closeMenu}>Home</Link>
-            <Link to="/services" className="px-4 py-2 hover:bg-accent rounded-md" onClick={closeMenu}>Services</Link>
-            <Link to="/courses" className="px-4 py-2 hover:bg-accent rounded-md" onClick={closeMenu}>Courses</Link>
-            <Link to="/about" className="px-4 py-2 hover:bg-accent rounded-md" onClick={closeMenu}>About</Link>
-            <Link to="/contact" className="px-4 py-2 hover:bg-accent rounded-md" onClick={closeMenu}>Contact</Link>
-            
-            <div className="border-t pt-4 mt-4">
-              {user ? (
-                <>
-                  <Button variant="outline" className="w-full mb-2" asChild onClick={closeMenu}>
-                    <Link to="/dashboard">Dashboard</Link>
-                  </Button>
-                  <Button variant="default" className="w-full" onClick={() => { signOut(); closeMenu(); }}>
-                    Log Out
-                  </Button>
-                </>
-              ) : (
-                <>
-                  <Button variant="outline" className="w-full mb-2" asChild onClick={closeMenu}>
-                    <Link to="/login">Log In</Link>
-                  </Button>
-                  <Button variant="default" className="w-full" asChild onClick={closeMenu}>
-                    <Link to="/signup">Get Started</Link>
-                  </Button>
-                </>
-              )}
-            </div>
+      {/* Mobile menu */}
+      {isOpen && (
+        <div className="sm:hidden">
+          <div className="pt-2 pb-3 space-y-1">
+            <NavLink
+              to="/courses"
+              className={({ isActive }) => 
+                `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                  isActive 
+                    ? "border-primary text-primary bg-primary/5" 
+                    : "border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                }`
+              }
+              onClick={closeMenu}
+            >
+              Courses
+            </NavLink>
+            <NavLink
+              to="/about"
+              className={({ isActive }) => 
+                `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                  isActive 
+                    ? "border-primary text-primary bg-primary/5" 
+                    : "border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                }`
+              }
+              onClick={closeMenu}
+            >
+              About
+            </NavLink>
+            <NavLink
+              to="/contact"
+              className={({ isActive }) => 
+                `block pl-3 pr-4 py-2 border-l-4 text-base font-medium ${
+                  isActive 
+                    ? "border-primary text-primary bg-primary/5" 
+                    : "border-transparent text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                }`
+              }
+              onClick={closeMenu}
+            >
+              Contact
+            </NavLink>
+            {/* Admin link will only show for admin users (mobile) */}
+            {user && (
+              <AdminNavLink />
+            )}
+          </div>
+          <div className="pt-4 pb-3 border-t border-gray-200">
+            {user ? (
+              <div className="space-y-1">
+                <Link
+                  to="/dashboard"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                  onClick={closeMenu}
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={() => {
+                    closeMenu();
+                    handleSignOut();
+                  }}
+                  className="block w-full text-left pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                >
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <Link
+                  to="/login"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                  onClick={closeMenu}
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="block pl-3 pr-4 py-2 border-l-4 border-transparent text-base font-medium text-gray-600 hover:bg-gray-50 hover:border-gray-300"
+                  onClick={closeMenu}
+                >
+                  Sign Up
+                </Link>
+              </div>
+            )}
           </div>
         </div>
       )}
