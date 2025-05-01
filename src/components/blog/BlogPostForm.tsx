@@ -73,11 +73,11 @@ export function BlogPostForm({ initialData, onSubmit }: BlogPostFormProps) {
   };
 
   const handleFormSubmit = (data: BlogPostFormValues) => {
-    onSubmit({
-      ...data,
-      author_id: user?.id,
-    });
-  };
+  onSubmit({
+    ...data,
+    author_id: user?.id,
+  });
+};
 
   const handleSelectMedia = (url: string) => {
     form.setValue("featured_image_url", url);
