@@ -9,6 +9,7 @@ import { AuthProvider } from "@/context/AuthContext";
 import MainLayout from "@/components/layout/MainLayout";
 import AdminLayout from "@/components/layout/AdminLayout";
 import ProtectedRoute from "@/components/auth/ProtectedRoute";
+import ErrorBoundary from "@/components/error/ErrorBoundary";
 
 // Pages
 import Index from "@/pages/Index";
@@ -32,62 +33,76 @@ import AdminSettings from "@/pages/admin/AdminSettings";
 import AdminBlog from "@/pages/admin/AdminBlog";
 import AdminMedia from "@/pages/admin/AdminMedia";
 
-const queryClient = new QueryClient();
+// Create a client for React Query with some defaults
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 1,
+      staleTime: 30000,
+      refetchOnWindowFocus: false,
+    },
+    mutations: {
+      retry: 1,
+    },
+  },
+});
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
-          <Routes>
-            <Route element={<MainLayout />}>
-              {/* Public Routes */}
-              <Route path="/" element={<Index />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/login" element={<Login />} />
-              <Route path="/signup" element={<Signup />} />
-              <Route path="/forgot-password" element={<ForgotPassword />} />
-              <Route path="/reset-password" element={<ResetPassword />} />
-              <Route path="/courses" element={<Courses />} />
-              <Route path="/courses/:courseSlug" element={<CourseDetail />} />
-              
-              {/* Protected Routes - User */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/profile" element={<Profile />} />
-                <Route path="/my-courses" element={<Dashboard />} />
-              </Route>
-              
-              {/* Special route for admin that redirects to /admin/dashboard */}
-              <Route 
-                path="/admin" 
-                element={
-                  <ProtectedRoute requireAdmin>
-                    <Navigate to="/admin/dashboard" replace />
-                  </ProtectedRoute>
-                } 
-              />
+    <ErrorBoundary>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route element={<MainLayout />}>
+                {/* Public Routes */}
+                <Route path="/" element={<Index />} />
+                <Route path="/contact" element={<Contact />} />
+                <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/courses" element={<Courses />} />
+                <Route path="/courses/:courseSlug" element={<CourseDetail />} />
+                
+                {/* Protected Routes - User */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/my-courses" element={<Dashboard />} />
+                </Route>
+                
+                {/* Special route for admin that redirects to /admin/dashboard */}
+                <Route 
+                  path="/admin" 
+                  element={
+                    <ProtectedRoute requireAdmin>
+                      <Navigate to="/admin/dashboard" replace />
+                    </ProtectedRoute>
+                  } 
+                />
 
-              {/* Protected Routes - Admin */}
-              <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminLayout /></ProtectedRoute>}>
-                <Route path="dashboard" element={<AdminDashboard />} />
-                <Route path="courses" element={<AdminCourses />} />
-                <Route path="users" element={<AdminUsers />} />
-                <Route path="testimonials" element={<AdminTestimonials />} />
-                <Route path="blog" element={<AdminBlog />} />
-                <Route path="media" element={<AdminMedia />} />
-                <Route path="settings" element={<AdminSettings />} />
+                {/* Protected Routes - Admin */}
+                <Route path="/admin" element={<ProtectedRoute requireAdmin><AdminLayout /></ProtectedRoute>}>
+                  <Route path="dashboard" element={<AdminDashboard />} />
+                  <Route path="courses" element={<AdminCourses />} />
+                  <Route path="users" element={<AdminUsers />} />
+                  <Route path="testimonials" element={<AdminTestimonials />} />
+                  <Route path="blog" element={<AdminBlog />} />
+                  <Route path="media" element={<AdminMedia />} />
+                  <Route path="settings" element={<AdminSettings />} />
+                </Route>
+                
+                {/* Not Found */}
+                <Route path="*" element={<NotFound />} />
               </Route>
-              
-              {/* Not Found */}
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+            </Routes>
+          </BrowserRouter>
+        </TooltipProvider>
+      </AuthProvider>
+    </ErrorBoundary>
   </QueryClientProvider>
 );
 
