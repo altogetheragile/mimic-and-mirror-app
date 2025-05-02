@@ -93,12 +93,15 @@ export const createCourseTemplate = async (
 
 export const updateCourseTemplate = async (
   id: string,
-  updates: Partial<Omit<CourseTemplate, 'id' | 'created_at' | 'created_by' | 'is_template'>>
+  updates: Partial<CourseTemplate>
 ): Promise<CourseTemplate | null> => {
   try {
+    // Prevent invalid keys from being passed to Supabase
+    const { id: _, created_at, created_by, is_template, ...safeUpdates } = updates;
+
     const { data, error } = await supabase
       .from("courses")
-      .update({ ...updates })
+      .update(safeUpdates)
       .eq("id", id)
       .eq("is_template", true)
       .select()
