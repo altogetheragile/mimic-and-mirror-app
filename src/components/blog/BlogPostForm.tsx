@@ -180,7 +180,7 @@ export function BlogPostForm({ onSubmit, initialData }: BlogPostFormProps) {
               <FormControl>
                 <div className="space-y-2">
                   <Input {...field} className="hidden" />
-                  <MediaSelector onSelect={handleMediaSelect} />
+                  <MediaSelector onSelect={handleMediaSelect} onClose={handleCloseMedia} />
                   {featuredImage && (
                     <div className="mt-2">
                       <img
