@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useParams, Link } from "react-router-dom";
@@ -53,14 +52,12 @@ const AdminCourseRegistrations = () => {
   
   const queryClient = useQueryClient();
 
-  // Fetch course info
   const { data: course, isLoading: courseLoading } = useQuery({
     queryKey: ["course", courseId],
     queryFn: () => courseId ? ({ data: { title: "Course Title", start_date: new Date().toISOString() } }) : null,
     enabled: !!courseId,
   });
 
-  // Fetch registrations
   const { data: registrations = [], isLoading: registrationsLoading } = useQuery({
     queryKey: ["courseRegistrations", courseId, statusFilter, paymentFilter, searchTerm],
     queryFn: () => courseId ? 
@@ -72,7 +69,6 @@ const AdminCourseRegistrations = () => {
     enabled: !!courseId,
   });
 
-  // Update registration status
   const updateStatusMutation = useMutation({
     mutationFn: ({ registrationId, status, paymentStatus }: { 
       registrationId: string, 
@@ -90,35 +86,22 @@ const AdminCourseRegistrations = () => {
     },
   });
 
-  // Filter registrations based on search and filters
   const filteredRegistrations = registrations.filter((reg: any) => {
-    // Status filter
-    if (statusFilter !== "all" && reg.status !== statusFilter) {
-      return false;
-    }
+    if (statusFilter !== "all" && reg.status !== statusFilter) return false;
+    if (paymentFilter !== "all" && reg.payment_status !== paymentFilter) return false;
 
-    // Payment filter
-    if (paymentFilter !== "all" && reg.payment_status !== paymentFilter) {
-      return false;
-    }
-
-    // Search term
     if (searchTerm) {
       const metadata = reg.metadata || {};
       const searchLower = searchTerm.toLowerCase();
       const nameMatch = `${metadata.first_name || ''} ${metadata.last_name || ''}`.toLowerCase().includes(searchLower);
       const emailMatch = metadata.email?.toLowerCase().includes(searchLower);
       const companyMatch = metadata.company?.toLowerCase().includes(searchLower);
-      
-      if (!nameMatch && !emailMatch && !companyMatch) {
-        return false;
-      }
+      return nameMatch || emailMatch || companyMatch;
     }
 
     return true;
   });
 
-  // Handle status update
   const handleStatusUpdate = (registrationId: string, status: string, paymentStatus?: string) => {
     updateStatusMutation.mutate({ 
       registrationId, 
@@ -141,7 +124,6 @@ const AdminCourseRegistrations = () => {
     });
   };
 
-  // Get status badge variant
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "confirmed":
@@ -155,7 +137,6 @@ const AdminCourseRegistrations = () => {
     }
   };
 
-  // Get payment status badge
   const getPaymentBadge = (paymentStatus: string) => {
     switch (paymentStatus) {
       case "paid":
@@ -173,10 +154,14 @@ const AdminCourseRegistrations = () => {
     <div className="container py-8">
       <Breadcrumb className="mb-8">
         <BreadcrumbItem>
-          <BreadcrumbLink as={Link} to="/admin/dashboard">Dashboard</BreadcrumbLink>
+          <BreadcrumbLink>
+            <Link to="/admin/dashboard">Dashboard</Link>
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbItem>
-          <BreadcrumbLink as={Link} to="/admin/courses">Courses</BreadcrumbLink>
+          <BreadcrumbLink>
+            <Link to="/admin/courses">Courses</Link>
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbItem>
           <BreadcrumbLink>Registrations</BreadcrumbLink>
@@ -185,12 +170,12 @@ const AdminCourseRegistrations = () => {
 
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
         <div>
-          <Button variant="outline" asChild className="mb-4">
-            <Link to="/admin/courses">
+          <Button variant="outline" className="mb-4">
+            <Link to="/admin/courses" className="flex items-center">
               <ArrowLeft className="mr-2 h-4 w-4" /> Back to Courses
             </Link>
           </Button>
-          
+
           {courseLoading ? (
             <div className="space-y-2">
               <Skeleton className="h-8 w-48" />
@@ -239,7 +224,7 @@ const AdminCourseRegistrations = () => {
                 onChange={(e) => setSearchTerm(e.target.value)}
               />
             </div>
-            
+
             <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilterType)}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Filter by status" />
@@ -251,7 +236,7 @@ const AdminCourseRegistrations = () => {
                 <SelectItem value="cancelled">Cancelled</SelectItem>
               </SelectContent>
             </Select>
-            
+
             <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentFilterType)}>
               <SelectTrigger className="w-full md:w-[180px]">
                 <SelectValue placeholder="Filter by payment" />
