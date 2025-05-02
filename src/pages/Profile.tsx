@@ -1,9 +1,18 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   Form,
   FormControl,
@@ -13,189 +22,293 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/components/ui/use-toast";
-import { Loader } from "lucide-react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+interface ProfileFormValues {
+  firstName: string;
+  lastName: string;
+  email: string;
+}
 
 const profileFormSchema = z.object({
-  first_name: z.string().min(1, "First name is required"),
-  last_name: z.string().min(1, "Last name is required"),
+  firstName: z.string().min(2, {
+    message: "First name must be at least 2 characters.",
+  }),
+  lastName: z.string().min(2, {
+    message: "Last name must be at least 2 characters.",
+  }),
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
 });
 
-const Profile: React.FC = () => {
-  const { profile, updateProfile } = useAuth();
-  const [isLoading, setIsLoading] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+interface PasswordFormValues {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}
 
-  const form = useForm<z.infer<typeof profileFormSchema>>({
-    resolver: zodResolver(profileFormSchema),
-    defaultValues: {
-      first_name: profile?.first_name || "",
-      last_name: profile?.last_name || "",
+const passwordFormSchema = z.object({
+  currentPassword: z.string().min(1, {
+    message: "Current password is required.",
+  }),
+  newPassword: z.string().min(8, {
+    message: "Password must be at least 8 characters.",
+  }),
+  confirmPassword: z.string(),
+}).refine((data) => data.newPassword === data.confirmPassword, {
+  message: "Passwords do not match.",
+  path: ["confirmPassword"],
+});
+
+const Profile = () => {
+  const { user, signOut } = useAuth();
+  const [isUpdatingProfile, setIsUpdatingProfile] = useState(false);
+  const [isUpdatingPassword, setIsUpdatingPassword] = useState(false);
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const userId = user?.id;
+
+  // Fetch user profile data
+  const { data: profile, isLoading: profileLoading } = useQuery({
+    queryKey: ["profile", userId],
+    queryFn: async () => {
+      if (!userId) return null;
+      const { data, error } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", userId)
+        .single();
+      
+      if (error) throw error;
+      return data;
     },
+    enabled: !!userId,
   });
 
-  // Update form values when profile data changes
-  React.useEffect(() => {
-    if (profile) {
-      form.reset({
-        first_name: profile.first_name || "",
-        last_name: profile.last_name || "",
-      });
-    }
-  }, [profile, form]);
-
-  const onSubmit = async (values: z.infer<typeof profileFormSchema>) => {
-    setIsLoading(true);
-    
-    try {
-      await updateProfile(values);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const handleAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !profile) return;
-    
-    setIsUploading(true);
-    
-    try {
-      // Upload file to Supabase storage
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${profile.id}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = `avatars/${fileName}`;
+  // Profile update mutation
+  const updateProfileMutation = useMutation({
+    mutationFn: async (values: ProfileFormValues) => {
+      if (!userId) throw new Error("User is not authenticated");
       
-      const { error: uploadError } = await supabase.storage
-        .from('assets')
-        .upload(filePath, file);
+      const { error } = await supabase
+        .from("profiles")
+        .update({
+          first_name: values.firstName,
+          last_name: values.lastName,
+        })
+        .eq("id", userId);
+      
+      if (error) throw error;
+      
+      // Update email if it has changed
+      if (values.email !== user.email) {
+        const { error: emailError } = await supabase.auth.updateUser({
+          email: values.email,
+        });
         
-      if (uploadError) throw uploadError;
-      
-      // Get the public URL
-      const { data: publicUrlData } = supabase.storage
-        .from('assets')
-        .getPublicUrl(filePath);
-        
-      if (!publicUrlData.publicUrl) throw new Error("Failed to get public URL");
-      
-      // Update profile with avatar URL
-      await updateProfile({
-        avatar_url: publicUrlData.publicUrl
-      });
-      
+        if (emailError) throw emailError;
+      }
+    },
+    onSuccess: () => {
       toast({
-        title: "Avatar uploaded successfully",
+        title: "Profile updated",
+        description: "Your profile information has been updated successfully.",
       });
-    } catch (error: any) {
+      queryClient.invalidateQueries({ queryKey: ["profile", userId] });
+    },
+    onError: (error) => {
       toast({
-        title: "Error uploading avatar",
+        title: "Error updating profile",
         description: error.message,
         variant: "destructive",
       });
-    } finally {
-      setIsUploading(false);
+    },
+  });
+
+  // Password update mutation
+  const updatePasswordMutation = useMutation({
+    mutationFn: async (values: { newPassword: string }) => {
+      const { error } = await supabase.auth.updateUser({
+        password: values.newPassword,
+      });
+      
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      toast({
+        title: "Password updated",
+        description: "Your password has been updated successfully. Please sign in again with your new password.",
+      });
+      // Sign out user after password change
+      setTimeout(() => {
+        signOut();
+        navigate("/login");
+      }, 2000);
+    },
+    onError: (error) => {
+      toast({
+        title: "Error updating password",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Profile form
+  const profileForm = useForm<ProfileFormValues>({
+    resolver: zodResolver(profileFormSchema),
+    defaultValues: {
+      firstName: "",
+      lastName: "",
+      email: user?.email || "",
+    },
+  });
+
+  // Password form
+  const passwordForm = useForm<PasswordFormValues>({
+    resolver: zodResolver(passwordFormSchema),
+    defaultValues: {
+      currentPassword: "",
+      newPassword: "",
+      confirmPassword: "",
+    },
+  });
+
+  // Update form defaults when profile data is loaded
+  useEffect(() => {
+    if (profile) {
+      profileForm.reset({
+        firstName: profile.first_name || "",
+        lastName: profile.last_name || "",
+        email: user?.email || "",
+      });
     }
+  }, [profile, user, profileForm]);
+
+  const onProfileSubmit = (values: ProfileFormValues) => {
+    setIsUpdatingProfile(true);
+    updateProfileMutation.mutate(values, {
+      onSettled: () => setIsUpdatingProfile(false),
+    });
   };
-  
-  // Get user's initials for avatar fallback
-  const getInitials = () => {
-    if (!profile) return "?";
-    
-    const firstName = profile.first_name || "";
-    const lastName = profile.last_name || "";
-    
-    return `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase();
+
+  const onPasswordSubmit = (values: PasswordFormValues) => {
+    setIsUpdatingPassword(true);
+    updatePasswordMutation.mutate({ newPassword: values.newPassword }, {
+      onSettled: () => setIsUpdatingPassword(false),
+    });
   };
-  
-  if (!profile) {
-    return (
-      <div className="container py-16">
-        <div className="max-w-3xl mx-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Profile not found</CardTitle>
-              <CardDescription>
-                Please sign in to view your profile.
-              </CardDescription>
-            </CardHeader>
-          </Card>
-        </div>
-      </div>
-    );
-  }
 
   return (
-    <div className="container py-16">
-      <div className="max-w-3xl mx-auto">
-        <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
-        
-        <Card className="mb-8">
-          <CardHeader>
-            <CardTitle>Profile Picture</CardTitle>
-            <CardDescription>
-              Upload a profile picture to personalize your account.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center space-y-4">
-            <Avatar className="h-24 w-24">
-              <AvatarImage src={profile.avatar_url || ""} alt={`${profile.first_name} ${profile.last_name}`} />
-              <AvatarFallback className="text-xl">{getInitials()}</AvatarFallback>
-            </Avatar>
-            
-            <div className="flex items-center">
-              <label htmlFor="avatar-upload" className="cursor-pointer">
-                <div className="flex items-center space-x-2">
-                  <Button type="button" variant="outline" disabled={isUploading}>
-                    {isUploading ? (
-                      <>
-                        <Loader className="mr-2 h-4 w-4 animate-spin" />
-                        Uploading...
-                      </>
-                    ) : (
-                      "Upload new picture"
-                    )}
-                  </Button>
+    <div className="container py-12">
+      <h1 className="text-3xl font-bold mb-8">Your Profile</h1>
+
+      <Tabs defaultValue="account" className="max-w-3xl">
+        <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsTrigger value="account">Account Information</TabsTrigger>
+          <TabsTrigger value="security">Security</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="account">
+          <Card>
+            <CardHeader>
+              <CardTitle>Account Information</CardTitle>
+              <CardDescription>
+                Update your personal information and email address.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {profileLoading ? (
+                <div className="flex justify-center py-4">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary"></div>
                 </div>
-                <input 
-                  type="file" 
-                  id="avatar-upload" 
-                  className="hidden" 
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  disabled={isUploading}
-                />
-              </label>
-            </div>
-          </CardContent>
-        </Card>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>
-              Update your personal information here.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              ) : (
+                <Form {...profileForm}>
+                  <form onSubmit={profileForm.handleSubmit(onProfileSubmit)} className="space-y-6">
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <FormField
+                        control={profileForm.control}
+                        name="firstName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>First Name</FormLabel>
+                            <FormControl>
+                              <Input disabled={isUpdatingProfile} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+
+                      <FormField
+                        control={profileForm.control}
+                        name="lastName"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Last Name</FormLabel>
+                            <FormControl>
+                              <Input disabled={isUpdatingProfile} {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    </div>
+
+                    <FormField
+                      control={profileForm.control}
+                      name="email"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Email</FormLabel>
+                          <FormControl>
+                            <Input disabled={isUpdatingProfile} {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <div className="flex justify-end">
+                      <Button type="submit" disabled={isUpdatingProfile}>
+                        {isUpdatingProfile ? "Updating..." : "Update Profile"}
+                      </Button>
+                    </div>
+                  </form>
+                </Form>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="security">
+          <Card>
+            <CardHeader>
+              <CardTitle>Change Password</CardTitle>
+              <CardDescription>
+                Update your password to keep your account secure.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Form {...passwordForm}>
+                <form onSubmit={passwordForm.handleSubmit(onPasswordSubmit)} className="space-y-6">
                   <FormField
-                    control={form.control}
-                    name="first_name"
+                    control={passwordForm.control}
+                    name="currentPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>First Name</FormLabel>
+                        <FormLabel>Current Password</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="John" 
-                            disabled={isLoading}
+                            type="password" 
+                            disabled={isUpdatingPassword} 
                             {...field} 
                           />
                         </FormControl>
@@ -203,17 +316,17 @@ const Profile: React.FC = () => {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
-                    control={form.control}
-                    name="last_name"
+                    control={passwordForm.control}
+                    name="newPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Last Name</FormLabel>
+                        <FormLabel>New Password</FormLabel>
                         <FormControl>
                           <Input 
-                            placeholder="Doe" 
-                            disabled={isLoading}
+                            type="password" 
+                            disabled={isUpdatingPassword} 
                             {...field} 
                           />
                         </FormControl>
@@ -221,29 +334,45 @@ const Profile: React.FC = () => {
                       </FormItem>
                     )}
                   />
-                </div>
-                
-                <Separator />
-                
-                <Button 
-                  type="submit" 
-                  disabled={isLoading}
-                  className="w-full md:w-auto"
-                >
-                  {isLoading ? (
-                    <>
-                      <Loader className="mr-2 h-4 w-4 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    "Save Changes"
-                  )}
-                </Button>
-              </form>
-            </Form>
-          </CardContent>
-        </Card>
-      </div>
+
+                  <FormField
+                    control={passwordForm.control}
+                    name="confirmPassword"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Confirm New Password</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="password" 
+                            disabled={isUpdatingPassword} 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="flex justify-end">
+                    <Button type="submit" disabled={isUpdatingPassword}>
+                      {isUpdatingPassword ? "Updating..." : "Change Password"}
+                    </Button>
+                  </div>
+                </form>
+              </Form>
+            </CardContent>
+            <CardFooter className="flex flex-col items-start border-t px-6 py-4">
+              <h3 className="text-sm font-medium mb-1">Delete Your Account</h3>
+              <p className="text-sm text-muted-foreground mb-3">
+                Once you delete your account, there is no going back. This action is permanent.
+              </p>
+              <Button variant="destructive" size="sm">
+                Delete Account
+              </Button>
+            </CardFooter>
+          </Card>
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };
