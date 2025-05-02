@@ -94,17 +94,27 @@ export function CourseRegistrationForm({ courseId, onSuccess }: CourseRegistrati
 
   // Handle individual registration submission
   const onSubmitIndividual = async (data: IndividualFormValues) => {
-    try {
-      setIsSubmitting(true);
-      await courseRegistrationService.registerForCourse(courseId, data);
-      individualForm.reset();
-      if (onSuccess) onSuccess();
-    } catch (error) {
-      console.error("Error submitting individual registration:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  try {
+    setIsSubmitting(true);
+
+    const payload: CourseRegistration = {
+      first_name: data.first_name,
+      last_name: data.last_name,
+      email: data.email,
+      phone: data.phone ?? "", // Fallback if optional
+      company: data.company ?? "",
+      special_requests: data.special_requests ?? "",
+    };
+
+    await courseRegistrationService.registerForCourse(courseId, payload);
+    individualForm.reset();
+    if (onSuccess) onSuccess();
+  } catch (error) {
+    console.error("Error submitting individual registration:", error);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // Handle group registration submission
   const onSubmitGroup = async (data: GroupFormValues) => {
