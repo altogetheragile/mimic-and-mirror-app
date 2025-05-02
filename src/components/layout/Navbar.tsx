@@ -17,7 +17,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/context/AuthContext";
 import { Menu, X, User, LogOut, Settings, Loader, BookOpen } from "lucide-react";
-import { useMobile } from "@/hooks/use-mobile";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navbar = () => {
   const { user, isAdmin, isInstructor, signOut, loading } = useAuth();
