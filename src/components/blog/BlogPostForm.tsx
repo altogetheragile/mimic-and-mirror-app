@@ -89,9 +89,10 @@ export function BlogPostForm({ onSubmit, initialData }: BlogPostFormProps) {
     }
   };
   
+  // Fix: Added handleCloseMedia function that was missing
   const handleCloseMedia = () => {
-  // You can customize this if you need to close a modal or take any action
-  console.log("MediaSelector closed");
+    // You can customize this if you need to close a modal or take any action
+    console.log("MediaSelector closed");
   };
   
   return (

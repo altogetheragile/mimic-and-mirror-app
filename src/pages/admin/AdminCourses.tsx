@@ -20,7 +20,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Pencil, Trash2, Plus } from "lucide-react";
+import { Pencil, Trash2, Plus, Users } from "lucide-react";
 import { format } from "date-fns";
 import { getAllCourses, deleteCourse } from "@/services/courseService";
 
@@ -68,7 +68,7 @@ const AdminCourses = () => {
               <TableHead>Price</TableHead>
               <TableHead>Start Date</TableHead>
               <TableHead>Published</TableHead>
-              <TableHead className="w-[100px]">Actions</TableHead>
+              <TableHead className="w-[180px]">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -96,6 +96,11 @@ const AdminCourses = () => {
                     <Button size="sm" variant="outline" asChild>
                       <Link to={`/admin/courses/${course.id}`}>
                         <Pencil className="h-4 w-4" />
+                      </Link>
+                    </Button>
+                    <Button size="sm" variant="outline" asChild>
+                      <Link to={`/admin/courses/${course.id}/registrations`} title="View registrations">
+                        <Users className="h-4 w-4" />
                       </Link>
                     </Button>
                     <Button 

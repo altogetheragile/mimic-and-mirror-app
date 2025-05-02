@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -21,7 +20,7 @@ import { useIsMobile } from "@/hooks/use-mobile";
 
 const Navbar = () => {
   const { user, isAdmin, isInstructor, signOut, loading } = useAuth();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
 
   const handleSignOut = async () => {
