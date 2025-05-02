@@ -88,7 +88,12 @@ export function BlogPostForm({ onSubmit, initialData }: BlogPostFormProps) {
       console.error("Error submitting blog post:", error);
     }
   };
-
+  
+  const handleCloseMedia = () => {
+  // You can customize this if you need to close a modal or take any action
+  console.log("MediaSelector closed");
+  };
+  
   return (
     <Form {...form}>
       <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
