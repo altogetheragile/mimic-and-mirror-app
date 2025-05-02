@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 
@@ -9,7 +10,7 @@ export const handleApiError = (error: any, customMessage?: string) => {
     description: customMessage || error.message || "An unexpected error occurred",
     variant: "destructive",
   });
-  return { error };
+  return { error, data: null };
 };
 
 // Generic success handler
@@ -73,9 +74,16 @@ export const blogService = {
   // Create a new blog post
   async createPost(post: any): Promise<ApiResponse<any>> {
     try {
+      // Ensure the author_id is set to the current user
+      const { data: userData } = await supabase.auth.getUser();
+      const postWithAuthor = {
+        ...post,
+        author_id: userData.user?.id
+      };
+      
       const { data, error } = await supabase
         .from("blog_posts")
-        .insert(post)
+        .insert(postWithAuthor)
         .select()
         .single();
       

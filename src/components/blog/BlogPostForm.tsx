@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import slugify from "slugify";
 import { Button } from "@/components/ui/button";
 import {
   Form,
@@ -15,100 +16,213 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/context/AuthContext";
+import { Switch } from "@/components/ui/switch";
 import { MediaSelector } from "@/components/media/MediaSelector";
 
-// Slug generation helper
-const generateSlug = (title: string) => {
-  return title
-    .toLowerCase()
-    .replace(/[^\w\s]/gi, '')
-    .replace(/\s+/g, '-');
-};
-
-// Form validation schema
+// Schema for blog post form validation
 const blogPostSchema = z.object({
-  title: z.string().min(3, "Title must be at least 3 characters"),
-  slug: z.string().min(3, "Slug must be at least 3 characters")
-    .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
-  content: z.string().min(10, "Content must be at least 10 characters"),
+  title: z.string().min(1, { message: "Title is required" }),
+  content: z.string().min(1, { message: "Content is required" }),
   excerpt: z.string().optional(),
   featured_image_url: z.string().optional(),
   meta_description: z.string().optional(),
   meta_keywords: z.string().optional(),
+  slug: z.string().optional(),
 });
 
-export type BlogPostFormValues = z.infer<typeof blogPostSchema>;
+type BlogPostFormValues = z.infer<typeof blogPostSchema>;
 
 interface BlogPostFormProps {
+  onSubmit: (data: any) => Promise<void>;
   initialData?: any;
-  onSubmit: (data: BlogPostFormValues & { author_id: string }) => void;
 }
 
-export function BlogPostForm({ initialData, onSubmit }: BlogPostFormProps) {
-  const { user } = useAuth();
-  const [selectedTab, setSelectedTab] = useState("content");
-  const [showMediaSelector, setShowMediaSelector] = useState(false);
-  
+export function BlogPostForm({ onSubmit, initialData }: BlogPostFormProps) {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [featuredImage, setFeaturedImage] = useState<string | undefined>(
+    initialData?.featured_image_url
+  );
+  const [autoSlug, setAutoSlug] = useState(!initialData?.slug);
+
+  // Form definition with default values
   const form = useForm<BlogPostFormValues>({
     resolver: zodResolver(blogPostSchema),
     defaultValues: {
       title: initialData?.title || "",
-      slug: initialData?.slug || "",
       content: initialData?.content || "",
       excerpt: initialData?.excerpt || "",
       featured_image_url: initialData?.featured_image_url || "",
       meta_description: initialData?.meta_description || "",
       meta_keywords: initialData?.meta_keywords || "",
+      slug: initialData?.slug || "",
     },
   });
 
-  // Auto-generate slug from title if not in edit mode
-  const handleTitleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!initialData) {
-      const title = event.target.value;
-      form.setValue("slug", generateSlug(title));
+  // Handle title change for auto-slug generation
+  const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (autoSlug) {
+      const newSlug = slugify(e.target.value, { lower: true, strict: true });
+      form.setValue("slug", newSlug);
     }
   };
 
-  const handleFormSubmit = (data: BlogPostFormValues) => {
-  if (!user?.id) {
-    console.error("User is not authenticated.");
-    return;
-  }
+  // Handle media selection for featured image
+  const handleMediaSelect = (media: any) => {
+    if (media && media.url) {
+      form.setValue("featured_image_url", media.url);
+      setFeaturedImage(media.url);
+    }
+  };
 
-  onSubmit({
-    ...data,
-    author_id: user.id,
-  });
-};
-
-  const handleSelectMedia = (url: string) => {
-    form.setValue("featured_image_url", url);
-    setShowMediaSelector(false);
+  // Handle form submission
+  const handleFormSubmit = async (values: BlogPostFormValues) => {
+    try {
+      setIsSubmitting(true);
+      
+      // Send only form data, the author_id will be added in the API layer
+      await onSubmit(values);
+      
+      setIsSubmitting(false);
+    } catch (error) {
+      setIsSubmitting(false);
+      console.error("Error submitting blog post:", error);
+    }
   };
 
   return (
-    <>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(handleFormSubmit)} className="space-y-6">
+        <FormField
+          control={form.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Title</FormLabel>
+              <FormControl>
+                <Input
+                  {...field}
+                  onChange={(e) => {
+                    field.onChange(e);
+                    handleTitleChange(e);
+                  }}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={autoSlug}
+            onCheckedChange={setAutoSlug}
+            id="auto-slug"
+          />
+          <label htmlFor="auto-slug" className="text-sm">
+            Auto-generate slug from title
+          </label>
+        </div>
+
+        <FormField
+          control={form.control}
+          name="slug"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Slug</FormLabel>
+              <FormControl>
+                <Input {...field} readOnly={autoSlug} />
+              </FormControl>
+              <FormDescription>
+                This will be used in the URL of your blog post
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="content"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Content</FormLabel>
+              <FormControl>
+                <Textarea rows={15} {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="excerpt"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Excerpt</FormLabel>
+              <FormControl>
+                <Textarea rows={3} {...field} />
+              </FormControl>
+              <FormDescription>
+                A short summary of the blog post for previews
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name="featured_image_url"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Featured Image</FormLabel>
+              <FormControl>
+                <div className="space-y-2">
+                  <Input {...field} className="hidden" />
+                  <MediaSelector onSelect={handleMediaSelect} />
+                  {featuredImage && (
+                    <div className="mt-2">
+                      <img
+                        src={featuredImage}
+                        alt="Featured"
+                        className="max-h-48 rounded border"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="mt-2"
+                        onClick={() => {
+                          form.setValue("featured_image_url", "");
+                          setFeaturedImage(undefined);
+                        }}
+                      >
+                        Remove Image
+                      </Button>
+                    </div>
+                  )}
+                </div>
+              </FormControl>
+              <FormDescription>
+                Select an image to be displayed with the blog post
+              </FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <FormField
             control={form.control}
-            name="title"
+            name="meta_description"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Title</FormLabel>
+                <FormLabel>Meta Description</FormLabel>
                 <FormControl>
-                  <Input 
-                    placeholder="Post title" 
-                    {...field} 
-                    onChange={(e) => {
-                      field.onChange(e);
-                      handleTitleChange(e);
-                    }}
-                  />
+                  <Textarea rows={2} {...field} />
                 </FormControl>
+                <FormDescription>For SEO purposes</FormDescription>
                 <FormMessage />
               </FormItem>
             )}
@@ -116,150 +230,32 @@ export function BlogPostForm({ initialData, onSubmit }: BlogPostFormProps) {
 
           <FormField
             control={form.control}
-            name="slug"
+            name="meta_keywords"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Slug</FormLabel>
+                <FormLabel>Meta Keywords</FormLabel>
                 <FormControl>
-                  <Input placeholder="post-url-slug" {...field} />
+                  <Input {...field} />
                 </FormControl>
                 <FormDescription>
-                  This will be used for the URL of your post
+                  Comma-separated keywords for SEO
                 </FormDescription>
                 <FormMessage />
               </FormItem>
             )}
           />
+        </div>
 
-          <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-            <TabsList>
-              <TabsTrigger value="content">Content</TabsTrigger>
-              <TabsTrigger value="excerpt">Excerpt & Featured Image</TabsTrigger>
-              <TabsTrigger value="seo">SEO</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="content" className="pt-4">
-              <FormField
-                control={form.control}
-                name="content"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Content</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Write your content here..." 
-                        className="min-h-[400px]"
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </TabsContent>
-            
-            <TabsContent value="excerpt" className="pt-4">
-              <FormField
-                control={form.control}
-                name="excerpt"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Excerpt</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="A short summary of your post..." 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormDescription>
-                      This will be shown on blog index pages and in social media previews
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="featured_image_url"
-                render={({ field }) => (
-                  <FormItem className="mt-6">
-                    <FormLabel>Featured Image</FormLabel>
-                    <div className="grid gap-4">
-                      {field.value && (
-                        <div className="border rounded-md p-1">
-                          <img 
-                            src={field.value} 
-                            alt="Featured" 
-                            className="rounded max-h-48 object-contain"
-                          />
-                        </div>
-                      )}
-                      <Button 
-                        type="button" 
-                        variant="outline" 
-                        onClick={() => setShowMediaSelector(true)}
-                      >
-                        {field.value ? "Change Image" : "Select Image"}
-                      </Button>
-                    </div>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </TabsContent>
-            
-            <TabsContent value="seo" className="pt-4">
-              <FormField
-                control={form.control}
-                name="meta_description"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Meta Description</FormLabel>
-                    <FormControl>
-                      <Textarea 
-                        placeholder="Description for search engines..." 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              
-              <FormField
-                control={form.control}
-                name="meta_keywords"
-                render={({ field }) => (
-                  <FormItem className="mt-6">
-                    <FormLabel>Meta Keywords</FormLabel>
-                    <FormControl>
-                      <Input 
-                        placeholder="keyword1, keyword2, keyword3" 
-                        {...field} 
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-            </TabsContent>
-          </Tabs>
-          
-          <div className="flex justify-end space-x-2">
-            <Button type="submit">
-              {initialData ? "Update Post" : "Create Post"}
-            </Button>
-          </div>
-        </form>
-      </Form>
-
-      {showMediaSelector && (
-        <MediaSelector 
-          onSelect={handleSelectMedia}
-          onClose={() => setShowMediaSelector(false)}
-        />
-      )}
-    </>
+        <div className="flex justify-end gap-2">
+          <Button type="submit" disabled={isSubmitting}>
+            {isSubmitting
+              ? "Saving..."
+              : initialData
+              ? "Update Blog Post"
+              : "Create Blog Post"}
+          </Button>
+        </div>
+      </form>
+    </Form>
   );
 }

@@ -1,257 +1,101 @@
 
 import React from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { toast } from "@/components/ui/use-toast";
-import { Mail, Phone, MapPin, Clock } from "lucide-react";
-
-const formSchema = z.object({
-  name: z.string().min(2, {
-    message: "Name must be at least 2 characters.",
-  }),
-  email: z.string().email({
-    message: "Please enter a valid email address.",
-  }),
-  phone: z.string().optional(),
-  company: z.string().optional(),
-  interest: z.string({
-    required_error: "Please select an area of interest.",
-  }),
-  message: z.string().min(10, {
-    message: "Message must be at least 10 characters.",
-  }),
-});
+import { Mail, MapPin, Phone } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import ContactForm from "@/components/ContactForm";
+import { settingsService } from "@/lib/api/supabase";
 
 const Contact = () => {
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      name: "",
-      email: "",
-      phone: "",
-      company: "",
-      message: "",
+  // Fetch contact settings
+  const { data: settingsData } = useQuery({
+    queryKey: ["contactSettings"],
+    queryFn: async () => {
+      const response = await settingsService.getSettingByKey("contact_info");
+      return response.data?.value || {
+        email: "contact@example.com",
+        phone: "+1 (123) 456-7890",
+        address: "123 Main Street, City, Country",
+      };
     },
   });
 
-  const onSubmit = async (data: z.infer<typeof formSchema>) => {
-    try {
-      // This would be replaced with actual API call to submit the form
-      console.log("Form data:", data);
-      
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      
-      toast({
-        title: "Message sent!",
-        description: "We'll get back to you as soon as possible.",
-      });
-      
-      form.reset();
-    } catch (error) {
-      toast({
-        title: "Something went wrong.",
-        description: "Your message couldn't be sent. Please try again.",
-        variant: "destructive",
-      });
-    }
+  const contactInfo = settingsData || {
+    email: "contact@example.com",
+    phone: "+1 (123) 456-7890",
+    address: "123 Main Street, City, Country",
   };
 
   return (
-    <>
-      <div className="container py-12">
-        <div className="max-w-4xl mx-auto">
-          <div className="text-center mb-10">
-            <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
-            <p className="text-lg text-muted-foreground">
-              Have questions about our services or need a custom proposal? 
-              Get in touch with our team and we'll get back to you shortly.
-            </p>
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-10">
-            <div className="md:col-span-2 p-6 rounded-lg bg-primary text-primary-foreground">
-              <div className="space-y-8">
-                <div>
-                  <h3 className="text-xl font-semibold mb-4">Contact Information</h3>
-                  <div className="space-y-4">
-                    <p className="flex items-center">
-                      <Mail className="h-5 w-5 mr-3 opacity-80" />
-                      info@altogetheragile.com
-                    </p>
-                    <p className="flex items-center">
-                      <Phone className="h-5 w-5 mr-3 opacity-80" />
-                      +1 (123) 456-7890
-                    </p>
-                  </div>
-                </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-4">Office Location</h3>
-                  <p className="flex items-start">
-                    <MapPin className="h-5 w-5 mr-3 mt-1 opacity-80" />
-                    <span>
-                      123 Agile Street, Suite 200<br />
-                      San Francisco, CA 94103<br />
-                      United States
-                    </span>
-                  </p>
-                </div>
-                
-                <div>
-                  <h3 className="text-xl font-semibold mb-4">Business Hours</h3>
-                  <p className="flex items-start">
-                    <Clock className="h-5 w-5 mr-3 mt-1 opacity-80" />
-                    <span>
-                      Monday - Friday: 9:00 AM - 5:00 PM PST<br />
-                      Saturday - Sunday: Closed
-                    </span>
-                  </p>
-                </div>
+    <div className="container mx-auto py-12 px-4">
+      <div className="text-center mb-12">
+        <h1 className="text-4xl font-bold mb-4">Contact Us</h1>
+        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+          Have questions or want to learn more about our services? We'd love to hear from you!
+          Fill out the form below and we'll get back to you as soon as possible.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-12 max-w-5xl mx-auto">
+        <div>
+          <h2 className="text-2xl font-semibold mb-6">Send Us a Message</h2>
+          <ContactForm />
+        </div>
+        
+        <div>
+          <h2 className="text-2xl font-semibold mb-6">Contact Information</h2>
+          <div className="space-y-8 mt-6">
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-primary/10 p-4 rounded-full mr-4">
+                <Mail className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium text-lg">Email</h3>
+                <p className="text-gray-600 mt-1">
+                  <a href={`mailto:${contactInfo.email}`} className="hover:text-primary">
+                    {contactInfo.email}
+                  </a>
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  We'll respond within 24-48 hours
+                </p>
               </div>
             </div>
-            
-            <div className="md:col-span-3 p-6 border rounded-lg shadow-sm">
-              <h3 className="text-xl font-semibold mb-6">Send Us a Message</h3>
-              
-              <Form {...form}>
-                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="email"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Email</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your email address" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                    <FormField
-                      control={form.control}
-                      name="phone"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Phone (optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your phone number" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                    
-                    <FormField
-                      control={form.control}
-                      name="company"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Company (optional)</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Your company name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-                  
-                  <FormField
-                    control={form.control}
-                    name="interest"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Area of Interest</FormLabel>
-                        <Select onValueChange={field.onChange} defaultValue={field.value}>
-                          <FormControl>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Select your area of interest" />
-                            </SelectTrigger>
-                          </FormControl>
-                          <SelectContent>
-                            <SelectItem value="team-coaching">Team Coaching</SelectItem>
-                            <SelectItem value="training">Agile Training</SelectItem>
-                            <SelectItem value="consulting">Agile Consulting</SelectItem>
-                            <SelectItem value="transformation">Enterprise Transformation</SelectItem>
-                            <SelectItem value="other">Other</SelectItem>
-                          </SelectContent>
-                        </Select>
-                        <FormDescription>
-                          Select the service you're most interested in.
-                        </FormDescription>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <FormField
-                    control={form.control}
-                    name="message"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Message</FormLabel>
-                        <FormControl>
-                          <Textarea
-                            placeholder="How can we help you?"
-                            className="resize-none min-h-[120px]"
-                            {...field}
-                          />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                  
-                  <Button type="submit" size="lg" className="w-full">
-                    Send Message
-                  </Button>
-                </form>
-              </Form>
+
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-primary/10 p-4 rounded-full mr-4">
+                <Phone className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium text-lg">Phone</h3>
+                <p className="text-gray-600 mt-1">
+                  <a href={`tel:${contactInfo.phone}`} className="hover:text-primary">
+                    {contactInfo.phone}
+                  </a>
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Mon-Fri, 9am-5pm (EST)
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-start">
+              <div className="flex-shrink-0 bg-primary/10 p-4 rounded-full mr-4">
+                <MapPin className="h-6 w-6 text-primary" />
+              </div>
+              <div>
+                <h3 className="font-medium text-lg">Office</h3>
+                <p className="text-gray-600 mt-1">
+                  {contactInfo.address}
+                </p>
+                <p className="text-sm text-gray-500 mt-1">
+                  Please schedule an appointment before visiting
+                </p>
+              </div>
             </div>
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 };
 
