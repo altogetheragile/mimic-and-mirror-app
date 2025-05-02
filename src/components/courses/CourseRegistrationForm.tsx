@@ -118,17 +118,32 @@ export function CourseRegistrationForm({ courseId, onSuccess }: CourseRegistrati
 
   // Handle group registration submission
   const onSubmitGroup = async (data: GroupFormValues) => {
-    try {
-      setIsSubmitting(true);
-      await courseRegistrationService.registerGroupForCourse(courseId, data);
-      groupForm.reset();
-      if (onSuccess) onSuccess();
-    } catch (error) {
-      console.error("Error submitting group registration:", error);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+  try {
+    setIsSubmitting(true);
+
+    const payload: GroupRegistration = {
+      contact_name: data.contact_name,
+      contact_email: data.contact_email,
+      contact_phone: data.contact_phone ?? "",
+      company: data.company,
+      special_requests: data.special_requests ?? "",
+      participants: data.participants.map((p) => ({
+        first_name: p.first_name,
+        last_name: p.last_name,
+        email: p.email,
+        phone: p.phone ?? "",
+      })),
+    };
+
+    await courseRegistrationService.registerGroupForCourse(courseId, payload);
+    groupForm.reset();
+    if (onSuccess) onSuccess();
+  } catch (error) {
+    console.error("Error submitting group registration:", error);
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   // Add a new participant field
   const addParticipant = () => {
