@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useParams, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
 import { ChevronRight, ArrowRight } from "lucide-react";
 
-// Service data - in a real application, this could come from a CMS or API
 const servicesData = {
   "agile-transformation": {
     title: "Agile Transformation",
@@ -131,9 +129,9 @@ const ServiceDetail: React.FC = () => {
           <p className="text-muted-foreground mb-8">
             The service you're looking for doesn't exist or may have been moved.
           </p>
-          <Button asChild>
-            <Link to="/services">View All Services</Link>
-          </Button>
+          <Link to="/services">
+            <Button>View All Services</Button>
+          </Link>
         </div>
       </div>
     );
@@ -143,10 +141,14 @@ const ServiceDetail: React.FC = () => {
     <div className="container py-12">
       <Breadcrumb className="mb-8">
         <BreadcrumbItem>
-          <BreadcrumbLink as={Link} to="/">Home</BreadcrumbLink>
+          <BreadcrumbLink asChild>
+            <Link to="/">Home</Link>
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbItem>
-          <BreadcrumbLink as={Link} to="/services">Services</BreadcrumbLink>
+          <BreadcrumbLink asChild>
+            <Link to="/services">Services</Link>
+          </BreadcrumbLink>
         </BreadcrumbItem>
         <BreadcrumbItem>
           <BreadcrumbLink>{serviceData.title}</BreadcrumbLink>
@@ -156,10 +158,10 @@ const ServiceDetail: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           <h1 className="text-4xl font-bold mb-6">{serviceData.title}</h1>
-          
+
           <div className="prose max-w-none">
             <p className="text-xl text-muted-foreground mb-8">{serviceData.description}</p>
-            
+
             {serviceData.fullDescription.split('\n\n').map((paragraph, index) => (
               <p key={index} className="mb-4">{paragraph}</p>
             ))}
@@ -180,11 +182,11 @@ const ServiceDetail: React.FC = () => {
           </div>
 
           <div className="mt-12">
-            <Button asChild size="lg">
-              <Link to="/contact">
+            <Link to="/contact">
+              <Button size="lg">
                 Contact Us About This Service <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -196,20 +198,20 @@ const ServiceDetail: React.FC = () => {
                 alt={serviceData.title} 
                 className="w-full h-48 object-cover rounded-md mb-6" 
               />
-              
+
               <h3 className="text-xl font-semibold mb-4">Ready to get started?</h3>
               <p className="mb-6">
                 Contact our team to discuss how our {serviceData.title.toLowerCase()} 
                 services can help your organization.
               </p>
-              
+
               <div className="space-y-4">
-                <Button asChild className="w-full">
-                  <Link to="/contact">Request Consultation</Link>
-                </Button>
-                <Button asChild variant="outline" className="w-full">
-                  <Link to="/courses">Browse Related Courses</Link>
-                </Button>
+                <Link to="/contact">
+                  <Button className="w-full">Request Consultation</Button>
+                </Link>
+                <Link to="/courses">
+                  <Button variant="outline" className="w-full">Browse Related Courses</Button>
+                </Link>
               </div>
             </CardContent>
           </Card>
