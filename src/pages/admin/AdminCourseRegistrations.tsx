@@ -1,6 +1,10 @@
-import React, { useState } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+
+import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
   TableBody,
@@ -10,16 +14,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import {
   Select,
   SelectContent,
   SelectItem,
@@ -27,337 +21,589 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  ArrowLeft,
-  Search,
-  Users,
-  Check,
-  X,
-  Clock,
-  AlertCircle,
-} from "lucide-react";
-import { format } from "date-fns";
-import { courseRegistrationService } from "@/lib/api/courseRegistration";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink } from "@/components/ui/breadcrumb";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Check, ChevronLeft, Eye, Search, UserPlus, X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
 
-type StatusFilterType = "all" | "pending" | "confirmed" | "cancelled";
-type PaymentFilterType = "all" | "paid" | "unpaid" | "refunded";
+const statusColors = {
+  pending: "bg-yellow-100 text-yellow-800 border-yellow-300",
+  confirmed: "bg-green-100 text-green-800 border-green-300",
+  cancelled: "bg-red-100 text-red-800 border-red-300",
+  waitlist: "bg-blue-100 text-blue-800 border-blue-300",
+};
+
+const paymentStatusColors = {
+  unpaid: "bg-red-100 text-red-800 border-red-300",
+  "partially-paid": "bg-yellow-100 text-yellow-800 border-yellow-300",
+  paid: "bg-green-100 text-green-800 border-green-300",
+  refunded: "bg-gray-100 text-gray-800 border-gray-300",
+};
+
+interface CourseRegistration {
+  id: string;
+  user_id: string;
+  course_id: string;
+  status: string;
+  payment_status: string;
+  created_at: string;
+  updated_at: string;
+  metadata?: {
+    first_name?: string;
+    last_name?: string;
+    email?: string;
+    company?: string;
+    is_group_registration?: boolean;
+  };
+}
+
+interface RegistrationWithUser extends CourseRegistration {
+  user?: {
+    email: string;
+    profile?: {
+      first_name: string;
+      last_name: string;
+    };
+  };
+}
+
+interface CourseDetails {
+  id: string;
+  title: string;
+  start_date: string;
+  capacity: number | null;
+}
 
 const AdminCourseRegistrations = () => {
   const { courseId } = useParams<{ courseId: string }>();
   const [searchTerm, setSearchTerm] = useState("");
-  const [statusFilter, setStatusFilter] = useState<StatusFilterType>("all");
-  const [paymentFilter, setPaymentFilter] = useState<PaymentFilterType>("all");
-  
+  const [selectedRegistration, setSelectedRegistration] = useState<RegistrationWithUser | null>(null);
+  const [viewRegistrationDetails, setViewRegistrationDetails] = useState(false);
   const queryClient = useQueryClient();
 
-  const { data: course, isLoading: courseLoading } = useQuery({
+  // Fetch course details
+  const {
+    data: course,
+    isLoading: courseLoading,
+    error: courseError,
+  } = useQuery({
     queryKey: ["course", courseId],
-    queryFn: () => courseId ? ({ data: { title: "Course Title", start_date: new Date().toISOString() } }) : null,
-    enabled: !!courseId,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("courses")
+        .select("id, title, start_date, capacity")
+        .eq("id", courseId)
+        .single();
+
+      if (error) throw error;
+      return data as CourseDetails;
+    },
   });
 
-  const { data: registrations = [], isLoading: registrationsLoading } = useQuery({
-    queryKey: ["courseRegistrations", courseId, statusFilter, paymentFilter, searchTerm],
-    queryFn: () => courseId ? 
-      courseRegistrationService.getRegistrationsForCourse(courseId)
-      .then(response => {
-        if (response.error) throw response.error;
-        return response.data || [];
-      }) : [],
-    enabled: !!courseId,
+  // Fetch registrations
+  const {
+    data: registrations = [],
+    isLoading,
+    error,
+  } = useQuery({
+    queryKey: ["course-registrations", courseId],
+    queryFn: async () => {
+      // Get regular registrations with user details
+      const { data: regularData, error: regularError } = await supabase
+        .from("course_registrations")
+        .select(
+          `
+          *,
+          user:user_id (
+            email,
+            profile:profiles (
+              first_name,
+              last_name
+            )
+          )
+        `
+        )
+        .eq("course_id", courseId);
+
+      if (regularError) throw regularError;
+
+      return regularData as RegistrationWithUser[];
+    },
   });
 
-  const updateStatusMutation = useMutation({
-    mutationFn: ({ registrationId, status, paymentStatus }: { 
-      registrationId: string, 
-      status: string,
-      paymentStatus?: string 
+  // Update registration status
+  const updateRegistrationMutation = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+      paymentStatus,
+    }: {
+      id: string;
+      status?: string;
+      paymentStatus?: string;
     }) => {
-      return courseRegistrationService.updateRegistrationStatus(
-        registrationId, 
-        status,
-        paymentStatus
-      );
+      const updates: { status?: string; payment_status?: string } = {};
+      if (status) updates.status = status;
+      if (paymentStatus) updates.payment_status = paymentStatus;
+
+      const { data, error } = await supabase
+        .from("course_registrations")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["courseRegistrations"] });
+      queryClient.invalidateQueries({ queryKey: ["course-registrations", courseId] });
+      toast({
+        title: "Registration updated",
+        description: "The registration status has been updated successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Update failed",
+        description: error.message,
+        variant: "destructive",
+      });
     },
   });
 
-  const filteredRegistrations = registrations.filter((reg: any) => {
-    if (statusFilter !== "all" && reg.status !== statusFilter) return false;
-    if (paymentFilter !== "all" && reg.payment_status !== paymentFilter) return false;
-
-    if (searchTerm) {
-      const metadata = reg.metadata || {};
-      const searchLower = searchTerm.toLowerCase();
-      const nameMatch = `${metadata.first_name || ''} ${metadata.last_name || ''}`.toLowerCase().includes(searchLower);
-      const emailMatch = metadata.email?.toLowerCase().includes(searchLower);
-      const companyMatch = metadata.company?.toLowerCase().includes(searchLower);
-      return nameMatch || emailMatch || companyMatch;
-    }
-
-    return true;
+  // Delete registration
+  const deleteRegistrationMutation = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("course_registrations").delete().eq("id", id);
+      if (error) throw error;
+      return true;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["course-registrations", courseId] });
+      toast({
+        title: "Registration deleted",
+        description: "The registration has been deleted successfully",
+      });
+    },
+    onError: (error) => {
+      toast({
+        title: "Delete failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    },
   });
 
-  const handleStatusUpdate = (registrationId: string, status: string, paymentStatus?: string) => {
-    updateStatusMutation.mutate({ 
-      registrationId, 
-      status, 
-      paymentStatus 
-    }, {
-      onSuccess: () => {
-        toast({
-          title: "Status updated",
-          description: `Registration status has been updated to ${status}`,
-        });
-      },
-      onError: (error) => {
-        toast({
-          title: "Update failed",
-          description: error.message || "Failed to update registration status",
-          variant: "destructive",
-        });
-      },
-    });
+  // Filter registrations based on search term
+  const filteredRegistrations = registrations.filter((registration) => {
+    const searchLower = searchTerm.toLowerCase();
+
+    // For group registrations, search in metadata
+    if (registration.metadata?.is_group_registration) {
+      const companyName = registration.metadata.company || "";
+      const participantName = `${registration.metadata.first_name} ${registration.metadata.last_name}`;
+      const participantEmail = registration.metadata.email || "";
+
+      return (
+        companyName.toLowerCase().includes(searchLower) ||
+        participantName.toLowerCase().includes(searchLower) ||
+        participantEmail.toLowerCase().includes(searchLower)
+      );
+    }
+
+    // For individual registrations
+    const userName = registration.user
+      ? `${registration.user.profile?.first_name || ""} ${
+          registration.user.profile?.last_name || ""
+        }`
+      : "";
+    const userEmail = registration.user?.email || "";
+
+    return userName.toLowerCase().includes(searchLower) || userEmail.toLowerCase().includes(searchLower);
+  });
+
+  if (courseLoading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
+      </div>
+    );
+  }
+
+  if (courseError || !course) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-red-500">Error loading course details</p>
+        <Button className="mt-4" variant="outline" asChild>
+          <Link to="/admin/courses">
+            <ChevronLeft className="mr-2 h-4 w-4" />
+            Back to Courses
+          </Link>
+        </Button>
+      </div>
+    );
+  }
+
+  // Display name for a registration
+  const getRegistrationName = (registration: RegistrationWithUser) => {
+    if (registration.metadata?.is_group_registration) {
+      return `${registration.metadata.first_name} ${registration.metadata.last_name}`;
+    }
+
+    if (registration.user?.profile) {
+      return `${registration.user.profile.first_name} ${registration.user.profile.last_name}`;
+    }
+
+    return "Unknown";
   };
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "confirmed":
-        return <Badge className="bg-green-100 text-green-800">Confirmed</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">Cancelled</Badge>;
-      case "pending":
-        return <Badge variant="outline" className="border-amber-500 text-amber-500">Pending</Badge>;
-      default:
-        return <Badge variant="outline">{status || "Unknown"}</Badge>;
+  // Display email for a registration
+  const getRegistrationEmail = (registration: RegistrationWithUser) => {
+    if (registration.metadata?.is_group_registration) {
+      return registration.metadata.email || "No email";
     }
+
+    return registration.user?.email || "No email";
   };
 
-  const getPaymentBadge = (paymentStatus: string) => {
-    switch (paymentStatus) {
-      case "paid":
-        return <Badge className="bg-green-100 text-green-800">Paid</Badge>;
-      case "refunded":
-        return <Badge variant="secondary">Refunded</Badge>;
-      case "unpaid":
-        return <Badge variant="outline" className="border-amber-500 text-amber-500">Unpaid</Badge>;
-      default:
-        return <Badge variant="outline">{paymentStatus || "Unknown"}</Badge>;
-    }
+  // Count of registrations by status
+  const getStatusCounts = () => {
+    return registrations.reduce(
+      (acc, reg) => {
+        if (reg.status) {
+          acc[reg.status] = (acc[reg.status] || 0) + 1;
+        } else {
+          acc.undefined = (acc.undefined || 0) + 1;
+        }
+        return acc;
+      },
+      {} as Record<string, number>
+    );
   };
+
+  const statusCounts = getStatusCounts();
 
   return (
-    <div className="container py-8">
-      <Breadcrumb className="mb-8">
-        <BreadcrumbItem>
-          <BreadcrumbLink>
-            <Link to="/admin/dashboard">Dashboard</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <BreadcrumbLink>
-            <Link to="/admin/courses">Courses</Link>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbItem>
-          <BreadcrumbLink>Registrations</BreadcrumbLink>
-        </BreadcrumbItem>
-      </Breadcrumb>
-
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <Button variant="outline" className="mb-4">
-            <Link to="/admin/courses" className="flex items-center">
-              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Courses
+          <Button variant="outline" asChild>
+            <Link to="/admin/courses">
+              <ChevronLeft className="mr-2 h-4 w-4" />
+              Back to Courses
             </Link>
           </Button>
-
-          {courseLoading ? (
-            <div className="space-y-2">
-              <Skeleton className="h-8 w-48" />
-              <Skeleton className="h-4 w-32" />
-            </div>
-          ) : (
-            <>
-              <h1 className="text-2xl font-bold">{course?.data?.title || "Course"} - Registrations</h1>
-              {course?.data?.start_date && (
-                <p className="text-sm text-muted-foreground">
-                  Course date: {format(new Date(course.data.start_date), "MMMM d, yyyy")}
-                </p>
-              )}
-            </>
-          )}
         </div>
+        
+        <Button variant="outline" asChild>
+          <Link to={`/admin/course-templates`}>
+            View Templates
+          </Link>
+        </Button>
+      </div>
 
-        <Card className="bg-muted/50">
-          <CardContent className="p-4 flex gap-4 items-center">
-            <Users className="h-8 w-8 text-primary" />
-            <div>
-              <p className="text-sm font-medium">Total Registrations</p>
-              <p className="text-2xl font-bold">
-                {registrationsLoading ? <Skeleton className="h-8 w-16" /> : filteredRegistrations.length}
+      <div>
+        <h1 className="text-2xl font-bold">{course.title}</h1>
+        <p className="text-muted-foreground">
+          Start date: {new Date(course.start_date).toLocaleDateString()}
+        </p>
+      </div>
+
+      {/* Stats cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">Total Registrations</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{registrations.length}</div>
+            {course.capacity && (
+              <p className="text-xs text-muted-foreground">
+                of {course.capacity} capacity (
+                {course.capacity > 0
+                  ? Math.round((registrations.length / course.capacity) * 100)
+                  : 0}
+                % filled)
               </p>
-            </div>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">Confirmed</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statusCounts.confirmed || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">Pending</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statusCounts.pending || 0}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="py-4">
+            <CardTitle className="text-sm font-medium">Cancelled</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{statusCounts.cancelled || 0}</div>
           </CardContent>
         </Card>
       </div>
 
+      {/* Search and filters */}
+      <div className="flex items-center">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Search registrations by name or email..."
+            className="pl-8"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <Button className="ml-4">
+          <UserPlus className="mr-2 h-4 w-4" />
+          Add Registration
+        </Button>
+      </div>
+
+      {/* Registrations table */}
       <Card>
         <CardHeader>
-          <CardTitle>Course Registrations</CardTitle>
-          <CardDescription>
-            Manage and update the status of participant registrations
-          </CardDescription>
+          <CardTitle>Registrations</CardTitle>
+          <CardDescription>Manage course registrations</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-col md:flex-row items-center gap-4 mb-6">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, email or company"
-                className="pl-8"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <div className="animate-spin h-8 w-8 border-4 border-primary border-t-transparent rounded-full"></div>
             </div>
-
-            <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as StatusFilterType)}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Filter by status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Statuses</SelectItem>
-                <SelectItem value="pending">Pending</SelectItem>
-                <SelectItem value="confirmed">Confirmed</SelectItem>
-                <SelectItem value="cancelled">Cancelled</SelectItem>
-              </SelectContent>
-            </Select>
-
-            <Select value={paymentFilter} onValueChange={(value) => setPaymentFilter(value as PaymentFilterType)}>
-              <SelectTrigger className="w-full md:w-[180px]">
-                <SelectValue placeholder="Filter by payment" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Payments</SelectItem>
-                <SelectItem value="paid">Paid</SelectItem>
-                <SelectItem value="unpaid">Unpaid</SelectItem>
-                <SelectItem value="refunded">Refunded</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          {registrationsLoading ? (
-            <div className="space-y-4">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="flex gap-4">
-                  <Skeleton className="h-12 flex-grow" />
-                </div>
-              ))}
-            </div>
-          ) : filteredRegistrations.length > 0 ? (
-            <div className="border rounded-md">
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Participant</TableHead>
-                    <TableHead>Contact</TableHead>
-                    <TableHead>Company</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Payment</TableHead>
-                    <TableHead>Registered</TableHead>
-                    <TableHead>Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredRegistrations.map((registration: any) => {
-                    const metadata = registration.metadata || {};
-                    return (
-                      <TableRow key={registration.id}>
-                        <TableCell className="font-medium">
-                          {metadata.first_name || ''} {metadata.last_name || ''}
-                        </TableCell>
-                        <TableCell>
-                          <div>{metadata.email || ''}</div>
-                          <div className="text-sm text-muted-foreground">{metadata.phone || ''}</div>
-                        </TableCell>
-                        <TableCell>{metadata.company || '-'}</TableCell>
-                        <TableCell>{getStatusBadge(registration.status)}</TableCell>
-                        <TableCell>{getPaymentBadge(registration.payment_status)}</TableCell>
-                        <TableCell>
-                          {registration.created_at && format(new Date(registration.created_at), "MMM d, yyyy")}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            {registration.status !== "confirmed" && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-8 w-8 p-0"
-                                title="Confirm registration"
-                                onClick={() => handleStatusUpdate(registration.id, "confirmed")}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {registration.status !== "cancelled" && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-8 w-8 p-0 border-destructive text-destructive"
-                                title="Cancel registration"
-                                onClick={() => handleStatusUpdate(registration.id, "cancelled")}
-                              >
-                                <X className="h-4 w-4" />
-                              </Button>
-                            )}
-                            {registration.payment_status === "unpaid" && (
-                              <Button 
-                                size="sm" 
-                                variant="outline" 
-                                className="h-8 w-8 p-0 border-green-600 text-green-600"
-                                title="Mark as paid"
-                                onClick={() => handleStatusUpdate(registration.id, registration.status, "paid")}
-                              >
-                                <Check className="h-4 w-4" />
-                              </Button>
-                            )}
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
-            </div>
+          ) : error ? (
+            <div className="text-center py-6 text-red-500">Error loading registrations</div>
+          ) : filteredRegistrations.length === 0 ? (
+            <div className="text-center py-10 text-muted-foreground">No registrations found</div>
           ) : (
-            <div className="text-center py-12 bg-muted rounded-lg">
-              <AlertCircle className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-              <h3 className="text-xl font-medium mb-2">No registrations found</h3>
-              <p className="text-muted-foreground mb-4">
-                {searchTerm || statusFilter !== "all" || paymentFilter !== "all" ? 
-                  "Try adjusting your search or filters" : 
-                  "This course doesn't have any registrations yet"}
-              </p>
-              {(searchTerm || statusFilter !== "all" || paymentFilter !== "all") && (
-                <Button 
-                  variant="outline"
-                  onClick={() => {
-                    setSearchTerm("");
-                    setStatusFilter("all");
-                    setPaymentFilter("all");
-                  }}
-                >
-                  Clear Filters
-                </Button>
-              )}
-            </div>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Email</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Payment</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredRegistrations.map((registration) => (
+                  <TableRow key={registration.id}>
+                    <TableCell className="font-medium">
+                      {getRegistrationName(registration)}
+                    </TableCell>
+                    <TableCell>{getRegistrationEmail(registration)}</TableCell>
+                    <TableCell>
+                      {registration.metadata?.is_group_registration ? (
+                        <Badge variant="outline">Group</Badge>
+                      ) : (
+                        <Badge variant="outline">Individual</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        defaultValue={registration.status || "pending"}
+                        onValueChange={(value) =>
+                          updateRegistrationMutation.mutate({
+                            id: registration.id,
+                            status: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Select status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="pending">Pending</SelectItem>
+                          <SelectItem value="confirmed">Confirmed</SelectItem>
+                          <SelectItem value="waitlist">Waitlist</SelectItem>
+                          <SelectItem value="cancelled">Cancelled</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      <Select
+                        defaultValue={registration.payment_status || "unpaid"}
+                        onValueChange={(value) =>
+                          updateRegistrationMutation.mutate({
+                            id: registration.id,
+                            paymentStatus: value,
+                          })
+                        }
+                      >
+                        <SelectTrigger className="w-32">
+                          <SelectValue placeholder="Payment status" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unpaid">Unpaid</SelectItem>
+                          <SelectItem value="partially-paid">Partial</SelectItem>
+                          <SelectItem value="paid">Paid</SelectItem>
+                          <SelectItem value="refunded">Refunded</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </TableCell>
+                    <TableCell>
+                      {new Date(registration.created_at).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => {
+                            setSelectedRegistration(registration);
+                            setViewRegistrationDetails(true);
+                          }}
+                        >
+                          <Eye className="h-4 w-4" />
+                          <span className="sr-only">View</span>
+                        </Button>
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button variant="ghost" size="icon" className="text-red-500">
+                              <X className="h-4 w-4" />
+                              <span className="sr-only">Delete</span>
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Delete Registration</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Are you sure you want to delete this registration? This action cannot be undone.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancel</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => deleteRegistrationMutation.mutate(registration.id)}
+                                className="bg-red-600 hover:bg-red-700"
+                              >
+                                Delete
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
           )}
         </CardContent>
       </Card>
+
+      {/* Registration details dialog */}
+      {selectedRegistration && (
+        <Dialog open={viewRegistrationDetails} onOpenChange={setViewRegistrationDetails}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Registration Details</DialogTitle>
+              <DialogDescription>
+                Complete information about this registration
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="grid gap-4 py-4">
+              <div className="grid gap-2">
+                <h3 className="font-medium">Participant Information</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="font-medium">Name:</div>
+                  <div>{getRegistrationName(selectedRegistration)}</div>
+                  <div className="font-medium">Email:</div>
+                  <div>{getRegistrationEmail(selectedRegistration)}</div>
+                  {selectedRegistration.metadata?.is_group_registration && (
+                    <>
+                      <div className="font-medium">Company:</div>
+                      <div>{selectedRegistration.metadata.company || "N/A"}</div>
+                    </>
+                  )}
+                </div>
+              </div>
+
+              <div className="grid gap-2">
+                <h3 className="font-medium">Registration Details</h3>
+                <div className="grid grid-cols-2 gap-2 text-sm">
+                  <div className="font-medium">Status:</div>
+                  <div>
+                    <Badge
+                      variant="outline"
+                      className={selectedRegistration.status && statusColors[selectedRegistration.status as keyof typeof statusColors]}
+                    >
+                      {selectedRegistration.status || "pending"}
+                    </Badge>
+                  </div>
+                  <div className="font-medium">Payment Status:</div>
+                  <div>
+                    <Badge
+                      variant="outline"
+                      className={selectedRegistration.payment_status && paymentStatusColors[selectedRegistration.payment_status as keyof typeof paymentStatusColors]}
+                    >
+                      {selectedRegistration.payment_status || "unpaid"}
+                    </Badge>
+                  </div>
+                  <div className="font-medium">Registration Date:</div>
+                  <div>
+                    {new Date(selectedRegistration.created_at).toLocaleDateString()}
+                  </div>
+                  <div className="font-medium">Last Updated:</div>
+                  <div>
+                    {new Date(selectedRegistration.updated_at).toLocaleDateString()}
+                  </div>
+                </div>
+              </div>
+
+              {/* Notes section could be added here */}
+              <div className="grid gap-2">
+                <h3 className="font-medium">Notes</h3>
+                <Textarea
+                  placeholder="Add notes about this registration"
+                  className="resize-none h-20"
+                />
+                <Button variant="secondary" className="w-full">
+                  <Check className="mr-2 h-4 w-4" />
+                  Save Notes
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };

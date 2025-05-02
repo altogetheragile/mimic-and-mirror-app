@@ -1,6 +1,7 @@
+
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { CourseRegistrationForm } from "@/components/courses/CourseRegistrationForm";
+import CourseRegistrationForm from "@/components/courses/CourseRegistrationForm";
 import { GroupRegistrationForm } from "@/components/courses/GroupRegistrationForm";
 
 interface CourseRegistrationTabsProps {

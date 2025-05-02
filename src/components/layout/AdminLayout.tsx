@@ -8,7 +8,8 @@ import {
   MessageSquare,
   Settings,
   FileText,
-  Image
+  Image,
+  FileTemplate
 } from "lucide-react";
 
 const AdminLayout = () => {
@@ -28,6 +29,9 @@ const AdminLayout = () => {
               </NavItem>
               <NavItem to="/admin/courses" icon={<BookOpen className="h-5 w-5" />}>
                 Courses
+              </NavItem>
+              <NavItem to="/admin/course-templates" icon={<FileTemplate className="h-5 w-5" />}>
+                Course Templates
               </NavItem>
               <NavItem to="/admin/users" icon={<Users className="h-5 w-5" />}>
                 Users
