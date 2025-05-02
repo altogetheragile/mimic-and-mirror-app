@@ -1,24 +1,36 @@
 
 import React from "react";
-import { Link } from "react-router-dom";
-import { useAuth } from "@/context/AuthContext";
-import { LayoutDashboard } from "lucide-react";
+import { NavLink, NavLinkProps } from "react-router-dom";
+import { cn } from "@/lib/utils";
+import { buttonVariants } from "@/components/ui/button";
+import { LucideIcon } from "lucide-react";
 
-const AdminNavLink = () => {
-  const { isAdmin } = useAuth();
+interface AdminNavLinkProps extends NavLinkProps {
+  icon?: LucideIcon;
+  children: React.ReactNode;
+}
 
-  if (!isAdmin) {
-    return null;
-  }
-
+const AdminNavLink: React.FC<AdminNavLinkProps> = ({
+  icon: Icon,
+  children,
+  className,
+  ...props
+}) => {
   return (
-    <Link 
-      to="/admin"
-      className="flex items-center px-4 py-2 text-sm font-medium transition-colors hover:text-primary"
+    <NavLink
+      className={({ isActive }) =>
+        cn(
+          buttonVariants({ variant: "ghost" }),
+          "w-full justify-start gap-2",
+          isActive ? "bg-accent text-accent-foreground font-medium" : "text-muted-foreground",
+          className
+        )
+      }
+      {...props}
     >
-      <LayoutDashboard className="h-4 w-4 mr-2" />
-      Admin
-    </Link>
+      {Icon && <Icon className="mr-2 h-4 w-4" />}
+      {children}
+    </NavLink>
   );
 };
 
