@@ -1,271 +1,522 @@
 
 import React, { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import * as z from "zod";
+import { Button } from "@/components/ui/button";
+import {
+  Form,
+  FormControl,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Button } from "@/components/ui/button";
+import { toast } from "@/components/ui/use-toast";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useToast } from "@/components/ui/use-toast";
+import { Loader, Save } from "lucide-react";
+
+// Define schema for general settings
+const generalSettingsSchema = z.object({
+  site_name: z.string().min(1, { message: "Site name is required" }),
+  site_description: z.string().optional(),
+  contact_email: z.string().email({ message: "Invalid email address" }),
+  company_name: z.string().optional(),
+});
+
+// Define schema for mail settings
+const mailSettingsSchema = z.object({
+  admin_email: z.string().email({ message: "Invalid email address" }),
+  smtp_host: z.string().min(1, { message: "SMTP host is required" }),
+  smtp_port: z.string().refine((val) => !isNaN(Number(val)), {
+    message: "SMTP port must be a number",
+  }),
+  smtp_username: z.string().min(1, { message: "SMTP username is required" }),
+  smtp_password: z.string().min(1, { message: "SMTP password is required" }),
+});
+
+// Define schema for social settings
+const socialSettingsSchema = z.object({
+  linkedin_url: z.string().url().optional().or(z.literal("")),
+  twitter_url: z.string().url().optional().or(z.literal("")),
+  facebook_url: z.string().url().optional().or(z.literal("")),
+  instagram_url: z.string().url().optional().or(z.literal("")),
+});
+
+type GeneralSettingsValues = z.infer<typeof generalSettingsSchema>;
+type MailSettingsValues = z.infer<typeof mailSettingsSchema>;
+type SocialSettingsValues = z.infer<typeof socialSettingsSchema>;
 
 const AdminSettings = () => {
-  const { toast } = useToast();
-  const [siteInfo, setSiteInfo] = useState({
-    title: "",
-    tagline: "",
-    description: ""
-  });
-  
-  const [contactInfo, setContactInfo] = useState({
-    email: "",
-    phone: "",
-    address: ""
-  });
-  
-  const [socialLinks, setSocialLinks] = useState({
-    linkedin: "",
-    twitter: "",
-    facebook: ""
-  });
+  const [activeTab, setActiveTab] = useState("general");
+  const { settings, isLoading, updateSetting } = useSiteSettings();
+  const [submitting, setSubmitting] = useState(false);
 
-  // Fetch site settings
-  const { refetch } = useQuery({
-    queryKey: ["siteSettings"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*");
-        
-      if (error) {
-        throw error;
-      }
-      
-      // Process the data to update state
-      data.forEach((setting) => {
-        if (setting.key === "site_info") {
-          setSiteInfo(setting.value as any);
-        } else if (setting.key === "contact_info") {
-          setContactInfo(setting.value as any);
-        } else if (setting.key === "social_links") {
-          setSocialLinks(setting.value as any);
-        }
-      });
-      
-      return data;
+  // Initialize general settings form
+  const generalForm = useForm<GeneralSettingsValues>({
+    resolver: zodResolver(generalSettingsSchema),
+    defaultValues: {
+      site_name: settings["site_name"] || "Altogether Agile",
+      site_description: settings["site_description"] || "",
+      contact_email: settings["contact_email"] || "",
+      company_name: settings["company_name"] || "Altogether Agile Ltd",
     },
   });
 
-  const handleSiteInfoSave = async () => {
-    const { error } = await supabase
-      .from("site_settings")
-      .update({ value: siteInfo })
-      .eq("key", "site_info");
-      
-    if (error) {
+  // Initialize mail settings form
+  const mailForm = useForm<MailSettingsValues>({
+    resolver: zodResolver(mailSettingsSchema),
+    defaultValues: {
+      admin_email: settings["admin_email"] || "",
+      smtp_host: settings["smtp_host"] || "",
+      smtp_port: settings["smtp_port"] || "587",
+      smtp_username: settings["smtp_username"] || "",
+      smtp_password: settings["smtp_password"] || "",
+    },
+  });
+
+  // Initialize social settings form
+  const socialForm = useForm<SocialSettingsValues>({
+    resolver: zodResolver(socialSettingsSchema),
+    defaultValues: {
+      linkedin_url: settings["linkedin_url"] || "",
+      twitter_url: settings["twitter_url"] || "",
+      facebook_url: settings["facebook_url"] || "",
+      instagram_url: settings["instagram_url"] || "",
+    },
+  });
+
+  // Update form values when settings are loaded
+  React.useEffect(() => {
+    if (!isLoading && settings) {
+      generalForm.reset({
+        site_name: settings["site_name"] || "Altogether Agile",
+        site_description: settings["site_description"] || "",
+        contact_email: settings["contact_email"] || "",
+        company_name: settings["company_name"] || "Altogether Agile Ltd",
+      });
+
+      mailForm.reset({
+        admin_email: settings["admin_email"] || "",
+        smtp_host: settings["smtp_host"] || "",
+        smtp_port: settings["smtp_port"] || "587",
+        smtp_username: settings["smtp_username"] || "",
+        smtp_password: settings["smtp_password"] || "",
+      });
+
+      socialForm.reset({
+        linkedin_url: settings["linkedin_url"] || "",
+        twitter_url: settings["twitter_url"] || "",
+        facebook_url: settings["facebook_url"] || "",
+        instagram_url: settings["instagram_url"] || "",
+      });
+    }
+  }, [isLoading, settings]);
+
+  const onSubmitGeneral = async (data: GeneralSettingsValues) => {
+    setSubmitting(true);
+    try {
+      // Update each setting individually
+      await Promise.all(
+        Object.entries(data).map(([key, value]) => 
+          updateSetting(key, value)
+        )
+      );
+      toast({
+        title: "Settings saved",
+        description: "General settings have been updated successfully",
+      });
+    } catch (error) {
       toast({
         title: "Error saving settings",
-        description: error.message,
+        description: "Failed to update general settings",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setSubmitting(false);
     }
-    
-    toast({
-      title: "Settings saved",
-      description: "Your site information has been updated",
-    });
-  };
-  
-  const handleContactInfoSave = async () => {
-    const { error } = await supabase
-      .from("site_settings")
-      .update({ value: contactInfo })
-      .eq("key", "contact_info");
-      
-    if (error) {
-      toast({
-        title: "Error saving settings",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    toast({
-      title: "Settings saved",
-      description: "Your contact information has been updated",
-    });
-  };
-  
-  const handleSocialLinksSave = async () => {
-    const { error } = await supabase
-      .from("site_settings")
-      .update({ value: socialLinks })
-      .eq("key", "social_links");
-      
-    if (error) {
-      toast({
-        title: "Error saving settings",
-        description: error.message,
-        variant: "destructive",
-      });
-      return;
-    }
-    
-    toast({
-      title: "Settings saved",
-      description: "Your social links have been updated",
-    });
   };
 
-  return (
-    <div className="py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">Site Settings</h1>
-      </div>
+  const onSubmitMail = async (data: MailSettingsValues) => {
+    setSubmitting(true);
+    try {
+      // Update each setting individually
+      await Promise.all(
+        Object.entries(data).map(([key, value]) => 
+          updateSetting(key, value)
+        )
+      );
       
-      <Tabs defaultValue="site-info">
-        <TabsList className="mb-8">
-          <TabsTrigger value="site-info">Site Information</TabsTrigger>
-          <TabsTrigger value="contact-info">Contact Information</TabsTrigger>
-          <TabsTrigger value="social-links">Social Media Links</TabsTrigger>
+      // Update Edge Function secrets
+      await Promise.all([
+        supabase.functions.setSecret("send-contact-form", "ADMIN_EMAIL", data.admin_email),
+        supabase.functions.setSecret("send-contact-form", "SMTP_HOST", data.smtp_host),
+        supabase.functions.setSecret("send-contact-form", "SMTP_PORT", data.smtp_port),
+        supabase.functions.setSecret("send-contact-form", "SMTP_USERNAME", data.smtp_username),
+        supabase.functions.setSecret("send-contact-form", "SMTP_PASSWORD", data.smtp_password)
+      ]);
+      
+      toast({
+        title: "Settings saved",
+        description: "Mail settings have been updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error saving settings",
+        description: "Failed to update mail settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const onSubmitSocial = async (data: SocialSettingsValues) => {
+    setSubmitting(true);
+    try {
+      // Update each setting individually
+      await Promise.all(
+        Object.entries(data).map(([key, value]) => 
+          updateSetting(key, value)
+        )
+      );
+      toast({
+        title: "Settings saved",
+        description: "Social settings have been updated successfully",
+      });
+    } catch (error) {
+      toast({
+        title: "Error saving settings",
+        description: "Failed to update social settings",
+        variant: "destructive",
+      });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <Loader className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="container py-8">
+      <div className="flex justify-between items-center mb-6">
+        <div>
+          <h1 className="text-3xl font-bold">Site Settings</h1>
+          <p className="text-muted-foreground">
+            Manage your website configuration
+          </p>
+        </div>
+      </div>
+
+      <Tabs defaultValue="general" value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="mail">Mail</TabsTrigger>
+          <TabsTrigger value="social">Social Media</TabsTrigger>
         </TabsList>
-        
-        <TabsContent value="site-info">
+
+        {/* General Settings */}
+        <TabsContent value="general">
           <Card>
             <CardHeader>
-              <CardTitle>Site Information</CardTitle>
+              <CardTitle>General Settings</CardTitle>
               <CardDescription>
-                Basic information about your website that appears in various places.
+                Basic information about your website
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="site-title">Site Title</Label>
-                <Input 
-                  id="site-title" 
-                  value={siteInfo.title} 
-                  onChange={(e) => setSiteInfo({...siteInfo, title: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="site-tagline">Tagline</Label>
-                <Input 
-                  id="site-tagline" 
-                  value={siteInfo.tagline} 
-                  onChange={(e) => setSiteInfo({...siteInfo, tagline: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="site-description">Description</Label>
-                <Textarea 
-                  id="site-description" 
-                  rows={4}
-                  value={siteInfo.description} 
-                  onChange={(e) => setSiteInfo({...siteInfo, description: e.target.value})}
-                />
-              </div>
+            <CardContent>
+              <Form {...generalForm}>
+                <form
+                  onSubmit={generalForm.handleSubmit(onSubmitGeneral)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={generalForm.control}
+                    name="site_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Site Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={generalForm.control}
+                    name="site_description"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Site Description</FormLabel>
+                        <FormControl>
+                          <Textarea {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={generalForm.control}
+                    name="company_name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Name</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={generalForm.control}
+                    name="contact_email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Contact Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="mt-4" disabled={submitting}>
+                    {submitting && (
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Settings
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleSiteInfoSave}>Save Changes</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="contact-info">
+
+        {/* Mail Settings */}
+        <TabsContent value="mail">
           <Card>
             <CardHeader>
-              <CardTitle>Contact Information</CardTitle>
+              <CardTitle>Mail Settings</CardTitle>
               <CardDescription>
-                How visitors can get in touch with your organization.
+                Configure SMTP settings for sending emails
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="contact-email">Email Address</Label>
-                <Input 
-                  id="contact-email" 
-                  type="email"
-                  value={contactInfo.email} 
-                  onChange={(e) => setContactInfo({...contactInfo, email: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-phone">Phone Number</Label>
-                <Input 
-                  id="contact-phone" 
-                  value={contactInfo.phone} 
-                  onChange={(e) => setContactInfo({...contactInfo, phone: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="contact-address">Address</Label>
-                <Textarea 
-                  id="contact-address" 
-                  rows={3}
-                  value={contactInfo.address} 
-                  onChange={(e) => setContactInfo({...contactInfo, address: e.target.value})}
-                />
-              </div>
+            <CardContent>
+              <Form {...mailForm}>
+                <form
+                  onSubmit={mailForm.handleSubmit(onSubmitMail)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={mailForm.control}
+                    name="admin_email"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Admin Email</FormLabel>
+                        <FormControl>
+                          <Input type="email" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mailForm.control}
+                    name="smtp_host"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SMTP Host</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mailForm.control}
+                    name="smtp_port"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SMTP Port</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mailForm.control}
+                    name="smtp_username"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SMTP Username</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={mailForm.control}
+                    name="smtp_password"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>SMTP Password</FormLabel>
+                        <FormControl>
+                          <Input type="password" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="mt-4" disabled={submitting}>
+                    {submitting && (
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Settings
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleContactInfoSave}>Save Changes</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
-        
-        <TabsContent value="social-links">
+
+        {/* Social Media Settings */}
+        <TabsContent value="social">
           <Card>
             <CardHeader>
-              <CardTitle>Social Media Links</CardTitle>
+              <CardTitle>Social Media</CardTitle>
               <CardDescription>
-                Connect your social media profiles to your website.
+                Link your social media accounts
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="linkedin-url">LinkedIn</Label>
-                <Input 
-                  id="linkedin-url" 
-                  placeholder="https://linkedin.com/company/your-company"
-                  value={socialLinks.linkedin} 
-                  onChange={(e) => setSocialLinks({...socialLinks, linkedin: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="twitter-url">Twitter</Label>
-                <Input 
-                  id="twitter-url" 
-                  placeholder="https://twitter.com/your-handle"
-                  value={socialLinks.twitter} 
-                  onChange={(e) => setSocialLinks({...socialLinks, twitter: e.target.value})}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="facebook-url">Facebook</Label>
-                <Input 
-                  id="facebook-url" 
-                  placeholder="https://facebook.com/your-page"
-                  value={socialLinks.facebook} 
-                  onChange={(e) => setSocialLinks({...socialLinks, facebook: e.target.value})}
-                />
-              </div>
+            <CardContent>
+              <Form {...socialForm}>
+                <form
+                  onSubmit={socialForm.handleSubmit(onSubmitSocial)}
+                  className="space-y-4"
+                >
+                  <FormField
+                    control={socialForm.control}
+                    name="linkedin_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>LinkedIn URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={socialForm.control}
+                    name="twitter_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Twitter URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={socialForm.control}
+                    name="facebook_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Facebook URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={socialForm.control}
+                    name="instagram_url"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Instagram URL</FormLabel>
+                        <FormControl>
+                          <Input {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <Button type="submit" className="mt-4" disabled={submitting}>
+                    {submitting && (
+                      <Loader className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    <Save className="mr-2 h-4 w-4" />
+                    Save Settings
+                  </Button>
+                </form>
+              </Form>
             </CardContent>
-            <CardFooter>
-              <Button onClick={handleSocialLinksSave}>Save Changes</Button>
-            </CardFooter>
           </Card>
         </TabsContent>
       </Tabs>
+
+      <div className="mt-8 p-6 border rounded-lg bg-muted/50">
+        <h3 className="text-lg font-medium mb-2">Help & Information</h3>
+        <p className="mb-4 text-sm text-muted-foreground">
+          The settings on this page affect how your website appears and functions. Changes are applied immediately.
+        </p>
+        <ul className="list-disc pl-5 space-y-2 text-sm text-muted-foreground">
+          <li>
+            <strong>General Settings</strong>: Change your site name, description, and contact information.
+          </li>
+          <li>
+            <strong>Mail Settings</strong>: Configure the SMTP server used for sending emails from the contact form.
+          </li>
+          <li>
+            <strong>Social Media</strong>: Add links to your social media profiles that will appear in the footer.
+          </li>
+        </ul>
+      </div>
     </div>
   );
 };

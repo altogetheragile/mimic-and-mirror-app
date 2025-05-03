@@ -1,9 +1,9 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import {
   Form,
@@ -35,6 +35,20 @@ type FormValues = z.infer<typeof formSchema>;
 const ResetPasswordForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Function to extract hash parameters from the URL
+  const getHashParams = () => {
+    const hash = location.hash.substring(1); // Remove the leading #
+    const params = new URLSearchParams(hash);
+    return {
+      accessToken: params.get('access_token'),
+      refreshToken: params.get('refresh_token'),
+      type: params.get('type')
+    };
+  };
+
+  const { accessToken } = getHashParams();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -47,11 +61,6 @@ const ResetPasswordForm: React.FC = () => {
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
-      // Get the hash from the URL
-      const hash = window.location.hash.substring(1);
-      const params = new URLSearchParams(hash);
-      const accessToken = params.get('access_token');
-      
       if (!accessToken) {
         throw new Error("No access token found");
       }
@@ -59,11 +68,12 @@ const ResetPasswordForm: React.FC = () => {
       // Set the session using the access token
       const { error: sessionError } = await supabase.auth.setSession({
         access_token: accessToken,
-        refresh_token: '',
+        refresh_token: '', // We don't have a refresh token in this case
       });
 
       if (sessionError) throw sessionError;
       
+      // Update the password
       const { error } = await supabase.auth.updateUser({
         password: data.password,
       });

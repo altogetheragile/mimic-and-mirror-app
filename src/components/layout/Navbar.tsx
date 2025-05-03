@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,11 +17,14 @@ import {
 import { useAuth } from "@/context/AuthContext";
 import { Menu, X, User, LogOut, Settings, Loader, BookOpen } from "lucide-react";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { useSiteSettings } from "@/context/SiteSettingsContext";
 
 const Navbar = () => {
   const { user, isAdmin, isInstructor, signOut, loading } = useAuth();
   const isMobile = useIsMobile();
   const [isOpen, setIsOpen] = useState(false);
+  const { getSetting } = useSiteSettings();
+  const siteName = getSetting("site_name", "Altogether Agile");
 
   const handleSignOut = async () => {
     await signOut();
@@ -61,7 +64,7 @@ const Navbar = () => {
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between py-4 border-b">
             <Link to="/" className="font-bold text-2xl" onClick={() => setIsOpen(false)}>
-              Agile Coach
+              {siteName}
             </Link>
             <SheetClose asChild>
               <Button variant="ghost" size="icon">
@@ -147,7 +150,7 @@ const Navbar = () => {
       <div className="container flex h-16 items-center justify-between">
         <div className="flex items-center gap-6">
           <Link to="/" className="font-bold text-2xl">
-            Agile Coach
+            {siteName}
           </Link>
 
           {/* Desktop Navigation */}
@@ -232,6 +235,11 @@ const Navbar = () => {
                   <DropdownMenuItem asChild>
                     <Link to="/profile">Profile</Link>
                   </DropdownMenuItem>
+                  {isAdmin && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin">Admin Panel</Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     className="text-red-600 focus:text-red-600 focus:bg-red-50 dark:focus:bg-red-900/20"
