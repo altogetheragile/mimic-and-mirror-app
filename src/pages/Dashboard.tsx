@@ -54,7 +54,7 @@ const Dashboard = () => {
       if (error) throw error;
       
       // Transform the data to match the expected CourseRegistration format
-      return (data || []).map(item => ({
+      return data?.map(item => ({
         id: item.id,
         status: item.status,
         payment_status: item.payment_status,
