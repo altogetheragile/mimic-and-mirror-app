@@ -60,11 +60,11 @@ const Dashboard = () => {
         payment_status: item.payment_status,
         created_at: item.created_at,
         course: {
-          id: item.courses?.id,
-          title: item.courses?.title,
-          start_date: item.courses?.start_date,
-          location: item.courses?.location,
-          slug: item.courses?.slug
+          id: item.courses.id,
+          title: item.courses.title,
+          start_date: item.courses.start_date,
+          location: item.courses.location,
+          slug: item.courses.slug
         }
       })) as CourseRegistration[];
     },
