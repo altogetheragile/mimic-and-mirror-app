@@ -1,7 +1,12 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
 import { useAuth } from "@/context/AuthContext";
+
+// Define ApiResponse type
+export type ApiResponse<T> = {
+  data: T | null;
+  error: Error | null;
+};
 
 // Blog Service
 export const blogService = {
@@ -321,7 +326,95 @@ export const mediaService = {
   },
 };
 
+// Settings Service
+export const settingsService = {
+  // Get all settings
+  getAllSettings: async (): Promise<ApiResponse<any[]>> => {
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .order("key");
+      
+      if (error) throw error;
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error("Error fetching site settings:", error);
+      return { data: null, error };
+    }
+  },
+  
+  // Get setting by key
+  getSettingByKey: async (key: string): Promise<ApiResponse<any>> => {
+    try {
+      const { data, error } = await supabase
+        .from("site_settings")
+        .select("*")
+        .eq("key", key)
+        .maybeSingle();
+      
+      if (error) throw error;
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error fetching setting ${key}:`, error);
+      return { data: null, error };
+    }
+  },
+  
+  // Upsert setting
+  upsertSetting: async (key: string, value: any, description?: string): Promise<ApiResponse<any>> => {
+    try {
+      const settingData = {
+        key,
+        value,
+        description,
+        updated_at: new Date().toISOString()
+      };
+      
+      const { data: existingSetting } = await settingsService.getSettingByKey(key);
+      
+      const { data, error } = await supabase
+        .from("site_settings")
+        .upsert(
+          existingSetting 
+            ? { ...existingSetting, ...settingData }
+            : settingData,
+          { onConflict: 'key' }
+        )
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error upserting setting ${key}:`, error);
+      return { data: null, error };
+    }
+  },
+  
+  // Delete setting
+  deleteSetting: async (key: string): Promise<ApiResponse<null>> => {
+    try {
+      const { error } = await supabase
+        .from("site_settings")
+        .delete()
+        .eq("key", key);
+      
+      if (error) throw error;
+      
+      return { data: null, error: null };
+    } catch (error: any) {
+      console.error(`Error deleting setting ${key}:`, error);
+      return { data: null, error };
+    }
+  }
+};
+
 export default {
   blogService,
-  mediaService
+  mediaService,
+  settingsService
 };

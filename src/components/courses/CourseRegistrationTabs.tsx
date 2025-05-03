@@ -6,9 +6,10 @@ import GroupRegistrationForm from "@/components/courses/GroupRegistrationForm";
 
 interface CourseRegistrationTabsProps {
   courseId: string;
+  courseName?: string;
 }
 
-const CourseRegistrationTabs: React.FC<CourseRegistrationTabsProps> = ({ courseId }) => {
+const CourseRegistrationTabs: React.FC<CourseRegistrationTabsProps> = ({ courseId, courseName = "" }) => {
   const [activeTab, setActiveTab] = useState('individual');
   
   return (
@@ -23,7 +24,7 @@ const CourseRegistrationTabs: React.FC<CourseRegistrationTabsProps> = ({ courseI
       </TabsContent>
       
       <TabsContent value="group">
-        <GroupRegistrationForm courseId={courseId} />
+        <GroupRegistrationForm courseId={courseId} courseName={courseName} />
       </TabsContent>
     </Tabs>
   );

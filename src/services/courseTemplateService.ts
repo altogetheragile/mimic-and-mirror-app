@@ -20,7 +20,7 @@ export interface CourseTemplate {
 }
 
 // Get all course templates
-export const getTemplates = async (): Promise<CourseTemplate[]> => {
+export const getAllCourseTemplates = async (): Promise<CourseTemplate[]> => {
   try {
     const { data, error } = await supabase
       .from("courses")
@@ -157,7 +157,7 @@ export const updateTemplate = async (id: string, templateData: Partial<CourseTem
 };
 
 // Delete a template
-export const deleteTemplate = async (id: string): Promise<boolean> => {
+export const deleteCourseTemplate = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("courses")
@@ -184,7 +184,7 @@ export const deleteTemplate = async (id: string): Promise<boolean> => {
 };
 
 // Create a new course from a template
-export const createCourseFromTemplate = async (templateId: string): Promise<string | null> => {
+export const createCourseFromTemplate = async (templateId: string, courseData: any): Promise<any> => {
   try {
     // Get the template
     const template = await getTemplateById(templateId);
@@ -211,7 +211,11 @@ export const createCourseFromTemplate = async (templateId: string): Promise<stri
         created_by: userData.user.id,
         slug: `${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`.substring(0, 100),
         is_template: false,
-        is_published: false
+        is_published: courseData?.is_published || false,
+        start_date: courseData?.start_date,
+        end_date: courseData?.end_date,
+        location: courseData?.location,
+        capacity: courseData?.capacity
       }])
       .select()
       .single();
@@ -223,7 +227,7 @@ export const createCourseFromTemplate = async (templateId: string): Promise<stri
       description: "A new course has been created from the template",
     });
 
-    return data.id;
+    return data;
   } catch (error: any) {
     toast({
       title: "Failed to create course",
@@ -235,10 +239,10 @@ export const createCourseFromTemplate = async (templateId: string): Promise<stri
 };
 
 export default {
-  getTemplates,
+  getTemplates: getAllCourseTemplates,
   getTemplateById,
   createTemplate,
   updateTemplate,
-  deleteTemplate,
+  deleteTemplate: deleteCourseTemplate,
   createCourseFromTemplate
 };

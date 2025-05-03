@@ -26,7 +26,8 @@ import { Pencil, Trash2, Plus, Copy, CalendarPlus } from "lucide-react";
 import { 
   getAllCourseTemplates, 
   deleteCourseTemplate,
-  createCourseFromTemplate
+  createCourseFromTemplate,
+  CourseTemplate
 } from "@/services/courseTemplateService";
 import { toast } from "@/components/ui/use-toast";
 import { Input } from "@/components/ui/input";
@@ -169,7 +170,7 @@ const AdminCourseTemplates = () => {
         </Card>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {templates.map((template) => (
+          {templates.map((template: CourseTemplate) => (
             <Card key={template.id} className="overflow-hidden">
               <div
                 className="h-40 bg-cover bg-center"
