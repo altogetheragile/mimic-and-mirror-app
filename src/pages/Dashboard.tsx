@@ -59,7 +59,7 @@ const Dashboard = () => {
         status: item.status,
         payment_status: item.payment_status,
         created_at: item.created_at,
-        course: item.courses // Rename courses to course to match our interface
+        course: item.courses // Single course object, not an array
       })) as CourseRegistration[];
     },
     enabled: !!user,

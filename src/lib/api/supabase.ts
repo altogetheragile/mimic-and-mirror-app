@@ -294,5 +294,67 @@ export const blogService = {
       console.error(`Error deleting blog post ${id}:`, error);
       return { data: null, error };
     }
+  },
+
+  // Add missing methods for publish/unpublish functionality
+  publishPost: async (id: string): Promise<ApiResponse> => {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .update({ 
+          status: 'published',
+          published_at: new Date().toISOString()
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Post published",
+        description: "The blog post has been published successfully",
+      });
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error publishing blog post ${id}:`, error);
+      toast({
+        title: "Error publishing post",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { data: null, error };
+    }
+  },
+  
+  unpublishPost: async (id: string): Promise<ApiResponse> => {
+    try {
+      const { data, error } = await supabase
+        .from('blog_posts')
+        .update({ 
+          status: 'draft',
+        })
+        .eq('id', id)
+        .select()
+        .single();
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Post unpublished",
+        description: "The blog post has been unpublished successfully",
+      });
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error unpublishing blog post ${id}:`, error);
+      toast({
+        title: "Error unpublishing post",
+        description: error.message,
+        variant: "destructive",
+      });
+      return { data: null, error };
+    }
   }
 };
