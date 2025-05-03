@@ -55,7 +55,6 @@ const Dashboard = () => {
       
       // Transform the data to match the expected CourseRegistration format
       return data?.map(item => {
-        // Handle the courses property properly - it should be a single object
         return {
           id: item.id,
           status: item.status,
