@@ -1,3 +1,4 @@
+
 // src/pages/Dashboard.tsx
 
 import React from "react";
@@ -42,7 +43,7 @@ const Dashboard = () => {
           status,
           payment_status,
           created_at,
-          courses:course_id (
+          course_id (
             id,
             title,
             start_date,
@@ -62,11 +63,11 @@ const Dashboard = () => {
         payment_status: item.payment_status,
         created_at: item.created_at,
         course: {
-          id: item.courses?.id,
-          title: item.courses?.title,
-          start_date: item.courses?.start_date,
-          location: item.courses?.location,
-          slug: item.courses?.slug,
+          id: item.course_id?.id,
+          title: item.course_id?.title,
+          start_date: item.course_id?.start_date,
+          location: item.course_id?.location,
+          slug: item.course_id?.slug,
         },
       })) as CourseRegistration[];
     },
