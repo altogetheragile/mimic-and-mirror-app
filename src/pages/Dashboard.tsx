@@ -1,6 +1,4 @@
 
-// src/pages/Dashboard.tsx
-
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -11,7 +9,6 @@ import { Loader, Calendar, BookOpen, Clock } from "lucide-react";
 import DashboardExplanation from "@/components/Dashboard/DashboardExplanation";
 import { supabase } from "@/integrations/supabase/client";
 
-// ✅ TypeScript Interfaces
 interface Course {
   id: string;
   title: string;
@@ -35,7 +32,7 @@ const Dashboard = () => {
     queryKey: ["userCourseRegistrations", user?.id],
     queryFn: async () => {
       if (!user) return [];
-
+      
       const { data, error } = await supabase
         .from("course_registrations")
         .select(`
@@ -43,7 +40,7 @@ const Dashboard = () => {
           status,
           payment_status,
           created_at,
-          course_id (
+          courses:course_id (
             id,
             title,
             start_date,
@@ -55,32 +52,35 @@ const Dashboard = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-
-      // Transform Supabase response to match CourseRegistration interface
-      return data.map((item: any) => ({
-        id: item.id,
-        status: item.status,
-        payment_status: item.payment_status,
-        created_at: item.created_at,
-        course: {
-          id: item.course_id.id,
-          title: item.course_id.title,
-          start_date: item.course_id.start_date,
-          location: item.course_id.location,
-          slug: item.course_id.slug,
-        }
-      })) as CourseRegistration[];
+      
+      // Transform the data to match the expected CourseRegistration format
+      return data?.map(item => {
+        return {
+          id: item.id,
+          status: item.status,
+          payment_status: item.payment_status,
+          created_at: item.created_at,
+          course: {
+            id: item.courses?.id,
+            title: item.courses?.title,
+            start_date: item.courses?.start_date,
+            location: item.courses?.location,
+            slug: item.courses?.slug
+          }
+        };
+      }) as CourseRegistration[];
     },
     enabled: !!user,
   });
 
-  // 🔄 Categorize by date
+  // Separate upcoming and past courses
   const currentDate = new Date();
-  const upcomingCourses = registrations?.filter(
-    (reg) => reg.course && new Date(reg.course.start_date) > currentDate
+  const upcomingCourses = registrations?.filter((reg) => 
+    reg.course && new Date(reg.course.start_date) > currentDate
   ) || [];
-  const pastCourses = registrations?.filter(
-    (reg) => reg.course && new Date(reg.course.start_date) <= currentDate
+  
+  const pastCourses = registrations?.filter((reg) => 
+    reg.course && new Date(reg.course.start_date) <= currentDate
   ) || [];
 
   if (isLoading) {
@@ -94,16 +94,14 @@ const Dashboard = () => {
   return (
     <div className="container py-8">
       <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-      <p className="text-muted-foreground mb-8">
-        Welcome back, {user?.user_metadata?.first_name || "there"}
-      </p>
+      <p className="text-muted-foreground mb-8">Welcome back, {user?.user_metadata?.first_name || 'there'}</p>
 
       <DashboardExplanation />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {/* Left Column - Courses */}
+        {/* Main Content - Course Information */}
         <div className="md:col-span-2 space-y-6">
-          {/* 🗓 Upcoming Courses */}
+          {/* Upcoming Courses */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center">
@@ -112,7 +110,7 @@ const Dashboard = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              {upcomingCourses.length > 0 ? (
+              {upcomingCourses && upcomingCourses.length > 0 ? (
                 <div className="space-y-4">
                   {upcomingCourses.map((registration) => (
                     <div key={registration.id} className="border rounded-md p-4">
@@ -120,27 +118,27 @@ const Dashboard = () => {
                         <div>
                           <h3 className="font-semibold">{registration.course.title}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(registration.course.start_date).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
+                            {new Date(registration.course.start_date).toLocaleDateString('en-US', {
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric'
                             })}
                           </p>
                           <p className="text-sm">{registration.course.location}</p>
                           <div className="mt-2">
-                            <span
-                              className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                                registration.status === "confirmed"
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-yellow-100 text-yellow-800"
-                              }`}
-                            >
-                              {registration.status || "Pending"}
+                            <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                              registration.status === 'confirmed' 
+                                ? 'bg-green-100 text-green-800' 
+                                : 'bg-yellow-100 text-yellow-800'
+                            }`}>
+                              {registration.status || 'Pending'}
                             </span>
                           </div>
                         </div>
                         <Button variant="outline" size="sm" asChild>
-                          <Link to={`/courses/${registration.course.slug}`}>View Details</Link>
+                          <Link to={`/courses/${registration.course.slug}`}>
+                            View Details
+                          </Link>
                         </Button>
                       </div>
                     </div>
@@ -161,8 +159,8 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* 🕰 Past Courses */}
-          {pastCourses.length > 0 && (
+          {/* Past Courses */}
+          {pastCourses && pastCourses.length > 0 && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -178,16 +176,18 @@ const Dashboard = () => {
                         <div>
                           <h3 className="font-semibold">{registration.course.title}</h3>
                           <p className="text-sm text-muted-foreground">
-                            {new Date(registration.course.start_date).toLocaleDateString("en-US", {
-                              year: "numeric",
-                              month: "long",
-                              day: "numeric",
+                            {new Date(registration.course.start_date).toLocaleDateString('en-US', {
+                              year: 'numeric', 
+                              month: 'long', 
+                              day: 'numeric'
                             })}
                           </p>
                           <p className="text-sm">{registration.course.location}</p>
                         </div>
                         <Button variant="outline" size="sm" asChild>
-                          <Link to={`/courses/${registration.course.slug}`}>View Details</Link>
+                          <Link to={`/courses/${registration.course.slug}`}>
+                            View Details
+                          </Link>
                         </Button>
                       </div>
                     </div>
@@ -198,25 +198,33 @@ const Dashboard = () => {
           )}
         </div>
 
-        {/* 📌 Sidebar */}
+        {/* Sidebar */}
         <div className="space-y-6">
+          {/* Quick Links */}
           <Card>
             <CardHeader>
               <CardTitle>Quick Links</CardTitle>
             </CardHeader>
             <CardContent className="space-y-2">
               <Button className="w-full justify-start" variant="outline" asChild>
-                <Link to="/profile">My Profile</Link>
+                <Link to="/profile">
+                  My Profile
+                </Link>
               </Button>
               <Button className="w-full justify-start" variant="outline" asChild>
-                <Link to="/courses">Browse Courses</Link>
+                <Link to="/courses">
+                  Browse Courses
+                </Link>
               </Button>
               <Button className="w-full justify-start" variant="outline" asChild>
-                <Link to="/contact">Contact Support</Link>
+                <Link to="/contact">
+                  Contact Support
+                </Link>
               </Button>
             </CardContent>
           </Card>
-
+          
+          {/* Need Help */}
           <Card>
             <CardHeader>
               <CardTitle>Need Help?</CardTitle>
