@@ -56,18 +56,18 @@ const Dashboard = () => {
 
       if (error) throw error;
 
-      // ✅ Transform Supabase response to match CourseRegistration interface
-      return data?.map(item => ({
+      // Transform Supabase response to match CourseRegistration interface
+      return data.map((item) => ({
         id: item.id,
         status: item.status,
         payment_status: item.payment_status,
         created_at: item.created_at,
         course: {
-          id: item.course_id?.id,
-          title: item.course_id?.title,
-          start_date: item.course_id?.start_date,
-          location: item.course_id?.location,
-          slug: item.course_id?.slug,
+          id: item.course_id.id,
+          title: item.course_id.title,
+          start_date: item.course_id.start_date,
+          location: item.course_id.location,
+          slug: item.course_id.slug,
         }
       })) as CourseRegistration[];
     },
