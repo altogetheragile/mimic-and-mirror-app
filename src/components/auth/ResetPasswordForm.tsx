@@ -47,6 +47,23 @@ const ResetPasswordForm: React.FC = () => {
   const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
     try {
+      // Get the hash from the URL
+      const hash = window.location.hash.substring(1);
+      const params = new URLSearchParams(hash);
+      const accessToken = params.get('access_token');
+      
+      if (!accessToken) {
+        throw new Error("No access token found");
+      }
+
+      // Set the session using the access token
+      const { error: sessionError } = await supabase.auth.setSession({
+        access_token: accessToken,
+        refresh_token: '',
+      });
+
+      if (sessionError) throw sessionError;
+      
       const { error } = await supabase.auth.updateUser({
         password: data.password,
       });

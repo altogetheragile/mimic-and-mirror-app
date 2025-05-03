@@ -101,16 +101,14 @@ export const createUser = async (
     
     // Assign roles
     if (roles.length > 0) {
-      const roleEntries = roles.map(role => ({
-        user_id: userId,
-        role
-      }));
+      const rolePromises = roles.map(role => 
+        supabase.from("user_roles").insert({
+          user_id: userId,
+          role: role
+        })
+      );
       
-      const { error: rolesError } = await supabase
-        .from("user_roles")
-        .insert(roleEntries);
-      
-      if (rolesError) throw rolesError;
+      await Promise.all(rolePromises);
     }
     
     toast({
@@ -178,16 +176,14 @@ export const updateUser = async (
       
       // Then insert new roles if any
       if (updates.roles.length > 0) {
-        const roleEntries = updates.roles.map(role => ({
-          user_id: userId,
-          role
-        }));
+        const rolePromises = updates.roles.map(role => 
+          supabase.from("user_roles").insert({
+            user_id: userId,
+            role: role
+          })
+        );
         
-        const { error: insertError } = await supabase
-          .from("user_roles")
-          .insert(roleEntries);
-        
-        if (insertError) throw insertError;
+        await Promise.all(rolePromises);
       }
     }
     

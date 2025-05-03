@@ -1,211 +1,201 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/components/ui/use-toast";
+import { useAuth } from "@/context/AuthContext";
 
-// Generic error handler for API requests
-export const handleApiError = (error: any, customMessage?: string) => {
-  console.error("API Error:", error);
-  toast({
-    title: "Error",
-    description: customMessage || error.message || "An unexpected error occurred",
-    variant: "destructive",
-  });
-  return { error, data: null };
-};
-
-// Generic success handler
-export const handleApiSuccess = (message: string) => {
-  toast({
-    title: "Success",
-    description: message,
-  });
-};
-
-// Type for API response
-export type ApiResponse<T> = {
-  data: T | null;
-  error: Error | null;
-};
-
-// Blog service
+// Blog Service
 export const blogService = {
-  // Get blog posts with optional filters
-  async getPosts(filters?: { status?: string; limit?: number; }): Promise<ApiResponse<any[]>> {
-    try {
-      let query = supabase
-        .from("blog_posts")
-        .select("*, profiles(first_name, last_name)");
-      
-      if (filters?.status) {
-        query = query.eq("status", filters.status);
-      }
-      
-      if (filters?.limit) {
-        query = query.limit(filters.limit);
-      }
-      
-      query = query.order("created_at", { ascending: false });
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to fetch blog posts");
-    }
-  },
-
-  // Get a single blog post by slug
-  async getPostBySlug(slug: string): Promise<ApiResponse<any>> {
+  // Get all blog posts with author information
+  getPosts: async () => {
     try {
       const { data, error } = await supabase
         .from("blog_posts")
-        .select("*, profiles(first_name, last_name)")
-        .eq("slug", slug)
-        .single();
+        .select(`
+          *,
+          profiles:author_id(first_name, last_name)
+        `)
+        .order("created_at", { ascending: false });
       
-      if (error) throw error;
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to fetch blog post");
+      if (error) {
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error("Error fetching blog posts:", error);
+      return { data: null, error };
     }
   },
-
-  // Create a new blog post
-  async createPost(post: any): Promise<ApiResponse<any>> {
+  
+  // Get a single blog post by ID
+  getPost: async (id: string) => {
     try {
-      // Ensure the author_id is set to the current user
-      const { data: userData } = await supabase.auth.getUser();
-      const postWithAuthor = {
-        ...post,
-        author_id: userData.user?.id
+      const { data, error } = await supabase
+        .from("blog_posts")
+        .select(`
+          *,
+          profiles:author_id(first_name, last_name)
+        `)
+        .eq("id", id)
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error fetching blog post ${id}:`, error);
+      return { data: null, error };
+    }
+  },
+  
+  // Create a new blog post
+  createPost: async (postData: any) => {
+    try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Add author_id to post data
+      const newPost = {
+        ...postData,
+        author_id: user.id,
+        status: 'draft',
       };
       
       const { data, error } = await supabase
         .from("blog_posts")
-        .insert(postWithAuthor)
+        .insert(newPost)
         .select()
         .single();
       
-      if (error) throw error;
-      handleApiSuccess("Blog post created successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to create blog post");
+      if (error) {
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error("Error creating blog post:", error);
+      return { data: null, error };
     }
   },
-
+  
   // Update an existing blog post
-  async updatePost(id: string, post: any): Promise<ApiResponse<any>> {
+  updatePost: async (id: string, postData: any) => {
     try {
       const { data, error } = await supabase
         .from("blog_posts")
-        .update(post)
+        .update(postData)
         .eq("id", id)
         .select()
         .single();
       
-      if (error) throw error;
-      handleApiSuccess("Blog post updated successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to update blog post");
+      if (error) {
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error updating blog post ${id}:`, error);
+      return { data: null, error };
     }
   },
-
+  
   // Delete a blog post
-  async deletePost(id: string): Promise<ApiResponse<any>> {
+  deletePost: async (id: string) => {
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("blog_posts")
         .delete()
         .eq("id", id);
       
-      if (error) throw error;
-      handleApiSuccess("Blog post deleted successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to delete blog post");
+      if (error) {
+        throw error;
+      }
+      
+      return { error: null };
+    } catch (error: any) {
+      console.error(`Error deleting blog post ${id}:`, error);
+      return { error };
     }
   },
-
+  
   // Publish a blog post
-  async publishPost(id: string): Promise<ApiResponse<any>> {
+  publishPost: async (id: string) => {
     try {
       const { data, error } = await supabase
         .from("blog_posts")
         .update({
-          status: "published",
+          status: 'published',
           published_at: new Date().toISOString(),
         })
         .eq("id", id)
         .select()
         .single();
       
-      if (error) throw error;
-      handleApiSuccess("Blog post published successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to publish blog post");
+      if (error) {
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error publishing blog post ${id}:`, error);
+      return { data: null, error };
     }
   },
-
+  
   // Unpublish a blog post
-  async unpublishPost(id: string): Promise<ApiResponse<any>> {
+  unpublishPost: async (id: string) => {
     try {
       const { data, error } = await supabase
         .from("blog_posts")
         .update({
-          status: "draft",
+          status: 'draft',
         })
         .eq("id", id)
         .select()
         .single();
       
-      if (error) throw error;
-      handleApiSuccess("Blog post unpublished successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to unpublish blog post");
+      if (error) {
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error unpublishing blog post ${id}:`, error);
+      return { data: null, error };
     }
-  }
+  },
 };
 
-// Media service
+// Media Service
 export const mediaService = {
   // Get all media assets
-  async getMedia(filters?: { folder?: string; type?: string; limit?: number }): Promise<ApiResponse<any[]>> {
+  getMedia: async () => {
     try {
-      let query = supabase
+      const { data, error } = await supabase
         .from("media_assets")
         .select("*")
-        .eq("is_deleted", false);
+        .eq("is_deleted", false)
+        .order("created_at", { ascending: false });
       
-      if (filters?.folder) {
-        query = query.eq("folder", filters.folder);
+      if (error) {
+        throw error;
       }
       
-      if (filters?.type) {
-        query = query.eq("file_type", filters.type);
-      }
-      
-      if (filters?.limit) {
-        query = query.limit(filters.limit);
-      }
-      
-      query = query.order("created_at", { ascending: false });
-      
-      const { data, error } = await query;
-      
-      if (error) throw error;
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to fetch media");
+      return { data, error: null };
+    } catch (error: any) {
+      console.error("Error fetching media:", error);
+      return { data: null, error };
     }
   },
-
-  // Get a single media asset
-  async getMediaById(id: string): Promise<ApiResponse<any>> {
+  
+  // Get a single media asset by ID
+  getMediaById: async (id: string) => {
     try {
       const { data, error } = await supabase
         .from("media_assets")
@@ -213,211 +203,125 @@ export const mediaService = {
         .eq("id", id)
         .single();
       
-      if (error) throw error;
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to fetch media item");
+      if (error) {
+        throw error;
+      }
+      
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error fetching media ${id}:`, error);
+      return { data: null, error };
     }
   },
-
-  // Upload media to storage
-  async uploadMedia(file: File, folder: string = "general"): Promise<ApiResponse<any>> {
-    try {
-      // Generate a unique file name
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 15)}.${fileExt}`;
-      const filePath = folder ? `${folder}/${fileName}` : fileName;
-      
-      // Upload to storage
-      const { data: storageData, error: storageError } = await supabase.storage
-        .from("media")
-        .upload(filePath, file);
-      
-      if (storageError) throw storageError;
-      
-      // Get public URL
-      const { data: publicUrlData } = supabase.storage
-        .from("media")
-        .getPublicUrl(filePath);
-      
-      // Create media asset record
-      const { data, error } = await supabase
-        .from("media_assets")
-        .insert({
-          file_name: fileName,
-          file_path: filePath,
-          file_type: file.type,
-          file_size: file.size,
-          uploaded_by: (await supabase.auth.getUser()).data.user?.id,
-          folder: folder,
-          alt_text: fileName,
-          title: fileName
-        })
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      handleApiSuccess("Media uploaded successfully");
-      
-      return { 
-        data: { 
-          ...data,
-          url: publicUrlData.publicUrl
-        }, 
-        error: null 
-      };
-    } catch (error) {
-      return handleApiError(error, "Failed to upload media");
-    }
-  },
-
-  // Update media metadata
-  async updateMedia(id: string, metadata: any): Promise<ApiResponse<any>> {
+  
+  // Update a media asset
+  updateMedia: async (id: string, mediaData: any) => {
     try {
       const { data, error } = await supabase
         .from("media_assets")
-        .update(metadata)
+        .update(mediaData)
         .eq("id", id)
         .select()
         .single();
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      handleApiSuccess("Media updated successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to update media");
+      return { data, error: null };
+    } catch (error: any) {
+      console.error(`Error updating media ${id}:`, error);
+      return { data: null, error };
     }
   },
-
-  // Soft delete media
-  async deleteMedia(id: string): Promise<ApiResponse<any>> {
+  
+  // Delete a media asset (soft delete)
+  deleteMedia: async (id: string) => {
     try {
-      // Soft delete by setting is_deleted to true
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from("media_assets")
         .update({ is_deleted: true })
         .eq("id", id);
       
-      if (error) throw error;
+      if (error) {
+        throw error;
+      }
       
-      handleApiSuccess("Media deleted successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to delete media");
+      return { error: null };
+    } catch (error: any) {
+      console.error(`Error deleting media ${id}:`, error);
+      return { error };
+    }
+  },
+  
+  // Upload a media asset
+  uploadMedia: async (file: File, folder: string = 'general') => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+      
+      // Create a unique file path
+      const timestamp = Date.now();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${timestamp}_${file.name.replace(`.${fileExt}`, '')}`;
+      const filePath = `${folder}/${fileName}.${fileExt}`;
+      
+      // Upload to Supabase Storage
+      const { error: uploadError } = await supabase.storage
+        .from('media')
+        .upload(filePath, file);
+      
+      if (uploadError) {
+        throw uploadError;
+      }
+      
+      // Get the public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('media')
+        .getPublicUrl(filePath);
+      
+      // Create media asset record in database
+      const mediaRecord = {
+        file_name: file.name,
+        file_path: filePath,
+        file_type: file.type,
+        file_size: file.size,
+        folder,
+        uploaded_by: user.id,
+        title: file.name,
+      };
+      
+      const { data, error } = await supabase
+        .from("media_assets")
+        .insert(mediaRecord)
+        .select()
+        .single();
+      
+      if (error) {
+        throw error;
+      }
+      
+      return { data, publicUrl, error: null };
+    } catch (error: any) {
+      console.error("Error uploading media:", error);
+      return { data: null, publicUrl: null, error };
     }
   },
   
   // Get public URL for a file path
-  getPublicUrl(filePath: string): string {
-    const { data } = supabase.storage
-      .from("media")
+  getPublicUrl: (filePath: string) => {
+    const { data: { publicUrl } } = supabase.storage
+      .from('media')
       .getPublicUrl(filePath);
     
-    return data.publicUrl;
-  }
+    return publicUrl;
+  },
 };
 
-// Settings service
-export const settingsService = {
-  // Get all settings
-  async getAllSettings(): Promise<ApiResponse<any[]>> {
-    try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*");
-      
-      if (error) throw error;
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to fetch settings");
-    }
-  },
-
-  // Get a setting by key
-  async getSettingByKey(key: string): Promise<ApiResponse<any>> {
-    try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .select("*")
-        .eq("key", key)
-        .single();
-      
-      if (error) throw error;
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to fetch setting");
-    }
-  },
-
-  // Update or create a setting
-  async upsertSetting(key: string, value: any, description?: string): Promise<ApiResponse<any>> {
-    try {
-      const { data, error } = await supabase
-        .from("site_settings")
-        .upsert(
-          {
-            key,
-            value,
-            description: description || null,
-            updated_at: new Date().toISOString()
-          },
-          { onConflict: "key" }
-        )
-        .select()
-        .single();
-      
-      if (error) throw error;
-      
-      handleApiSuccess("Setting updated successfully");
-      return { data: data ?? null, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to update setting");
-    }
-  }
-};
-
-// User service (extending existing implementation)
-export const userService = {
-  async updateUserRole(userId: string, role: 'admin' | 'instructor' | 'student'): Promise<ApiResponse<any>> {
-    try {
-      // First check if the user already has a role
-      const { data: existingRole, error: fetchError } = await supabase
-        .from("user_roles")
-        .select("*")
-        .eq("user_id", userId)
-        .maybeSingle();
-      
-      let result;
-      
-      if (fetchError) throw fetchError;
-      
-      if (existingRole) {
-        // Update existing role
-        result = await supabase
-          .from("user_roles")
-          .update({ role })
-          .eq("user_id", userId)
-          .select()
-          .single();
-      } else {
-        // Insert new role
-        result = await supabase
-          .from("user_roles")
-          .insert({ user_id: userId, role })
-          .select()
-          .single();
-      }
-      
-      if (result.error) throw result.error;
-      
-      handleApiSuccess(`User role updated to ${role}`);
-      return { data: result.data, error: null };
-    } catch (error) {
-      return handleApiError(error, "Failed to update user role");
-    }
-  },
-  
-  // Other user methods can be added here
+export default {
+  blogService,
+  mediaService
 };

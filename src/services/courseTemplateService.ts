@@ -6,40 +6,49 @@ export interface CourseTemplate {
   id: string;
   title: string;
   description?: string;
+  content?: string;
   category?: string;
   level?: string;
-  content?: string;
-  prerequisites?: string;
   duration?: number;
   price?: number;
+  prerequisites?: string;
   image_url?: string;
+  created_by: string;
   created_at?: string;
-  created_by?: string;
+  updated_at?: string;
   is_template: boolean;
 }
 
-export const getAllCourseTemplates = async (): Promise<CourseTemplate[]> => {
+// Get all course templates
+export const getTemplates = async (): Promise<CourseTemplate[]> => {
   try {
     const { data, error } = await supabase
       .from("courses")
       .select("*")
       .eq("is_template", true)
-      .order("created_at", { ascending: false });
+      .order("title", { ascending: true });
 
     if (error) throw error;
 
-    return (data || []) as CourseTemplate[];
+    // Transform data into CourseTemplate type
+    const templates: CourseTemplate[] = data.map((item: any) => ({
+      ...item,
+      is_template: true
+    }));
+
+    return templates;
   } catch (error: any) {
     toast({
-      title: "Error fetching course templates",
-      description: error.message || "Failed to fetch course templates",
+      title: "Failed to load templates",
+      description: error.message,
       variant: "destructive",
     });
     return [];
   }
 };
 
-export const getCourseTemplateById = async (id: string): Promise<CourseTemplate | null> => {
+// Get a template by ID
+export const getTemplateById = async (id: string): Promise<CourseTemplate | null> => {
   try {
     const { data, error } = await supabase
       .from("courses")
@@ -50,83 +59,105 @@ export const getCourseTemplateById = async (id: string): Promise<CourseTemplate 
 
     if (error) throw error;
 
-    return data as CourseTemplate;
+    // Transform data into CourseTemplate type
+    const template: CourseTemplate = {
+      ...data,
+      is_template: true
+    };
+
+    return template;
   } catch (error: any) {
     toast({
-      title: "Error fetching course template",
-      description: error.message || "Failed to fetch course template",
+      title: "Failed to load template",
+      description: error.message,
       variant: "destructive",
     });
     return null;
   }
 };
 
-export const createCourseTemplate = async (
-  template: Omit<CourseTemplate, 'id' | 'created_at' | 'is_template'>
-): Promise<CourseTemplate | null> => {
+// Create a new template
+export const createTemplate = async (templateData: Partial<CourseTemplate>): Promise<CourseTemplate | null> => {
   try {
-    const { data: authData } = await supabase.auth.getUser();
-    const created_by = authData?.user?.id;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error("User not authenticated");
 
     const { data, error } = await supabase
       .from("courses")
-      .insert([{ ...template, created_by, is_template: true }])
+      .insert([
+        {
+          ...templateData,
+          created_by: userData.user.id,
+          slug: `template-${Date.now()}`, // Generate a unique slug
+          is_template: true
+        }
+      ])
       .select()
       .single();
 
     if (error) throw error;
 
+    // Transform data into CourseTemplate type
+    const template: CourseTemplate = {
+      ...data,
+      is_template: true
+    };
+
     toast({
-      title: "Success",
-      description: "Course template created successfully",
+      title: "Template created",
+      description: "The course template has been created successfully",
     });
 
-    return data as CourseTemplate;
+    return template;
   } catch (error: any) {
     toast({
-      title: "Error creating course template",
-      description: error.message || "Failed to create course template",
+      title: "Failed to create template",
+      description: error.message,
       variant: "destructive",
     });
     return null;
   }
 };
 
-export const updateCourseTemplate = async (
-  id: string,
-  updates: Partial<CourseTemplate>
-): Promise<CourseTemplate | null> => {
+// Update a template
+export const updateTemplate = async (id: string, templateData: Partial<CourseTemplate>): Promise<CourseTemplate | null> => {
   try {
-    // Prevent invalid keys from being passed to Supabase
-    const { id: _, created_at, created_by, is_template, ...safeUpdates } = updates;
-
     const { data, error } = await supabase
       .from("courses")
-      .update(safeUpdates)
+      .update({
+        ...templateData,
+        updated_at: new Date().toISOString(),
+      })
       .eq("id", id)
-      .eq("is_template", true)
       .select()
       .single();
 
     if (error) throw error;
 
+    // Transform data into CourseTemplate type
+    const template: CourseTemplate = {
+      ...data,
+      is_template: true
+    };
+
     toast({
-      title: "Success",
-      description: "Course template updated successfully",
+      title: "Template updated",
+      description: "The course template has been updated successfully",
     });
 
-    return data as CourseTemplate;
+    return template;
   } catch (error: any) {
     toast({
-      title: "Error updating course template",
-      description: error.message || "Failed to update course template",
+      title: "Failed to update template",
+      description: error.message,
       variant: "destructive",
     });
     return null;
   }
 };
 
-export const deleteCourseTemplate = async (id: string): Promise<boolean> => {
+// Delete a template
+export const deleteTemplate = async (id: string): Promise<boolean> => {
   try {
     const { error } = await supabase
       .from("courses")
@@ -137,84 +168,77 @@ export const deleteCourseTemplate = async (id: string): Promise<boolean> => {
     if (error) throw error;
 
     toast({
-      title: "Success",
-      description: "Course template deleted successfully",
+      title: "Template deleted",
+      description: "The course template has been deleted successfully",
     });
 
     return true;
   } catch (error: any) {
     toast({
-      title: "Error deleting course template",
-      description: error.message || "Failed to delete course template",
+      title: "Failed to delete template",
+      description: error.message,
       variant: "destructive",
     });
     return false;
   }
 };
 
-export const createCourseFromTemplate = async (
-  templateId: string,
-  courseData: {
-    start_date: string;
-    end_date?: string;
-    location?: string;
-    capacity?: number;
-    is_published?: boolean;
-  }
-): Promise<any> => {
+// Create a new course from a template
+export const createCourseFromTemplate = async (templateId: string): Promise<string | null> => {
   try {
-    const template = await getCourseTemplateById(templateId);
+    // Get the template
+    const template = await getTemplateById(templateId);
     if (!template) throw new Error("Template not found");
 
-    const startDate = new Date(courseData.start_date);
-    const slug = `${template.title
-      .toLowerCase()
-      .replace(/[^\w ]+/g, "")
-      .replace(/ +/g, "-")}-${startDate.getFullYear()}-${String(startDate.getMonth() + 1).padStart(2, "0")}`;
+    const { data: userData } = await supabase.auth.getUser();
+    if (!userData.user) throw new Error("User not authenticated");
 
-    const { data: authData } = await supabase.auth.getUser();
-    const created_by = authData?.user?.id;
-
+    // Create a new course from the template
+    const { content, description, title, category, level, duration, price, prerequisites, image_url } = template;
+    
     const { data, error } = await supabase
       .from("courses")
-      .insert([
-        {
-          title: template.title,
-          description: template.description,
-          content: template.content,
-          category: template.category,
-          level: template.level,
-          prerequisites: template.prerequisites,
-          duration: template.duration,
-          price: template.price,
-          image_url: template.image_url,
-          created_by,
-          start_date: courseData.start_date,
-          end_date: courseData.end_date,
-          location: courseData.location,
-          capacity: courseData.capacity,
-          is_published: courseData.is_published || false,
-          is_template: false,
-          slug,
-        },
-      ])
+      .insert([{
+        title,
+        content,
+        description,
+        category,
+        level,
+        duration,
+        price,
+        prerequisites,
+        image_url,
+        created_by: userData.user.id,
+        slug: `${title.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}`.substring(0, 100),
+        is_template: false,
+        is_published: false
+      }])
       .select()
       .single();
 
     if (error) throw error;
 
     toast({
-      title: "Success",
-      description: "Course created from template successfully",
+      title: "Course created",
+      description: "A new course has been created from the template",
     });
 
-    return data;
+    return data.id;
   } catch (error: any) {
     toast({
-      title: "Error creating course from template",
-      description: error.message || "Failed to create course from template",
+      title: "Failed to create course",
+      description: error.message,
       variant: "destructive",
     });
     return null;
   }
+};
+
+export default {
+  getTemplates,
+  getTemplateById,
+  createTemplate,
+  updateTemplate,
+  deleteTemplate,
+  createCourseFromTemplate
 };

@@ -3,8 +3,9 @@ import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { useNavigate, Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/context/AuthContext";
 import {
   Form,
   FormControl,
@@ -16,15 +17,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/use-toast";
-import { useAuth } from "@/context/AuthContext";
-import { Loader } from "lucide-react";
+import { Loader, Mail, KeyRound } from "lucide-react";
 
 const formSchema = z.object({
-  email: z
+  email: z.string().email({ message: "Please enter a valid email address" }),
+  password: z
     .string()
-    .min(1, { message: "Email is required" })
-    .email("Invalid email address"),
-  password: z.string().min(1, { message: "Password is required" }),
+    .min(8, { message: "Password must be at least 8 characters" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -32,7 +31,7 @@ type FormValues = z.infer<typeof formSchema>;
 const LoginForm: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const { setUser } = useAuth();
+  const { updateSession } = useAuth();
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -52,18 +51,20 @@ const LoginForm: React.FC = () => {
 
       if (error) throw error;
 
-      if (authData.user) {
-        setUser(authData.user);
-        toast({
-          title: "Login successful",
-          description: "You have successfully logged in",
-        });
-        navigate("/dashboard");
+      if (updateSession) {
+        updateSession(authData.session);
       }
+      
+      toast({
+        title: "Login successful",
+        description: "You have been logged in successfully",
+      });
+      
+      navigate("/dashboard");
     } catch (error: any) {
       toast({
         title: "Login failed",
-        description: error.message || "Invalid credentials",
+        description: error.message || "Failed to login",
         variant: "destructive",
       });
     } finally {
@@ -73,7 +74,7 @@ const LoginForm: React.FC = () => {
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
         <FormField
           control={form.control}
           name="email"
@@ -81,7 +82,15 @@ const LoginForm: React.FC = () => {
             <FormItem>
               <FormLabel>Email</FormLabel>
               <FormControl>
-                <Input placeholder="email@example.com" type="email" {...field} />
+                <div className="relative">
+                  <Mail className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="you@example.com" 
+                    type="email" 
+                    className="pl-10" 
+                    {...field} 
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
@@ -93,28 +102,32 @@ const LoginForm: React.FC = () => {
           name="password"
           render={({ field }) => (
             <FormItem>
-              <div className="flex items-center justify-between">
+              <div className="flex justify-between items-center">
                 <FormLabel>Password</FormLabel>
                 <Link
                   to="/forgot-password"
-                  className="text-sm font-medium text-primary hover:underline"
+                  className="text-xs text-primary hover:underline"
                 >
                   Forgot password?
                 </Link>
               </div>
               <FormControl>
-                <Input placeholder="••••••••" type="password" {...field} />
+                <div className="relative">
+                  <KeyRound className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                  <Input 
+                    placeholder="••••••••" 
+                    type="password" 
+                    className="pl-10" 
+                    {...field} 
+                  />
+                </div>
               </FormControl>
               <FormMessage />
             </FormItem>
           )}
         />
 
-        <Button
-          type="submit"
-          className="w-full"
-          disabled={isLoading}
-        >
+        <Button type="submit" className="w-full" disabled={isLoading}>
           {isLoading && <Loader className="mr-2 h-4 w-4 animate-spin" />}
           Sign In
         </Button>

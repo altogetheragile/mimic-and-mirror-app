@@ -1,46 +1,29 @@
 
-import React, { useState } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import CourseRegistrationForm from "@/components/courses/CourseRegistrationForm";
-import { GroupRegistrationForm } from "@/components/courses/GroupRegistrationForm";
+import React, { useState } from 'react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { CourseRegistrationForm } from "@/components/courses/CourseRegistrationForm";
+import GroupRegistrationForm from "@/components/courses/GroupRegistrationForm";
 
 interface CourseRegistrationTabsProps {
   courseId: string;
-  courseName: string;
-  onSuccess?: () => void;
 }
 
-const CourseRegistrationTabs: React.FC<CourseRegistrationTabsProps> = ({ 
-  courseId, 
-  courseName,
-  onSuccess
-}) => {
-  const [activeTab, setActiveTab] = useState("individual");
-
+const CourseRegistrationTabs: React.FC<CourseRegistrationTabsProps> = ({ courseId }) => {
+  const [activeTab, setActiveTab] = useState('individual');
+  
   return (
-    <Tabs defaultValue="individual" value={activeTab} onValueChange={setActiveTab}>
-      <TabsList className="grid w-full grid-cols-2">
+    <Tabs defaultValue="individual" onValueChange={setActiveTab}>
+      <TabsList className="grid w-full grid-cols-2 mb-6">
         <TabsTrigger value="individual">Individual Registration</TabsTrigger>
-        <TabsTrigger value="group">Group/Company Registration</TabsTrigger>
+        <TabsTrigger value="group">Group Registration</TabsTrigger>
       </TabsList>
       
-      <TabsContent value="individual" className="pt-6">
-        <CourseRegistrationForm 
-          courseId={courseId}
-          onSuccess={() => {
-            if (onSuccess) onSuccess();
-          }}
-        />
+      <TabsContent value="individual">
+        <CourseRegistrationForm courseId={courseId} />
       </TabsContent>
       
-      <TabsContent value="group" className="pt-6">
-        <GroupRegistrationForm 
-          courseId={courseId}
-          courseName={courseName}
-          onSuccess={() => {
-            if (onSuccess) onSuccess();
-          }}
-        />
+      <TabsContent value="group">
+        <GroupRegistrationForm courseId={courseId} />
       </TabsContent>
     </Tabs>
   );
