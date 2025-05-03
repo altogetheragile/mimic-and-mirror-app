@@ -57,7 +57,7 @@ const Dashboard = () => {
       if (error) throw error;
 
       // Transform Supabase response to match CourseRegistration interface
-      return data.map((item) => ({
+      return data.map((item: any) => ({
         id: item.id,
         status: item.status,
         payment_status: item.payment_status,
