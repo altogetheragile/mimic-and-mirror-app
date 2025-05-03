@@ -9,18 +9,20 @@ import { Loader, Calendar, BookOpen, Clock } from "lucide-react";
 import DashboardExplanation from "@/components/Dashboard/DashboardExplanation";
 import { supabase } from "@/integrations/supabase/client";
 
+interface Course {
+  id: string;
+  title: string;
+  start_date: string;
+  location: string;
+  slug: string;
+}
+
 interface CourseRegistration {
   id: string;
   status: string;
   payment_status: string;
   created_at: string;
-  course: {
-    id: string;
-    title: string;
-    start_date: string;
-    location: string;
-    slug: string;
-  };
+  course: Course;
 }
 
 const Dashboard = () => {
@@ -50,7 +52,15 @@ const Dashboard = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data as CourseRegistration[];
+      
+      // Transform the data to match the expected CourseRegistration format
+      return (data || []).map(item => ({
+        id: item.id,
+        status: item.status,
+        payment_status: item.payment_status,
+        created_at: item.created_at,
+        course: item.courses // Rename courses to course to match our interface
+      })) as CourseRegistration[];
     },
     enabled: !!user,
   });

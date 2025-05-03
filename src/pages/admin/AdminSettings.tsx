@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -159,18 +158,11 @@ const AdminSettings = () => {
         )
       );
       
-      // Update Edge Function secrets
-      await Promise.all([
-        supabase.functions.setSecret("send-contact-form", "ADMIN_EMAIL", data.admin_email),
-        supabase.functions.setSecret("send-contact-form", "SMTP_HOST", data.smtp_host),
-        supabase.functions.setSecret("send-contact-form", "SMTP_PORT", data.smtp_port),
-        supabase.functions.setSecret("send-contact-form", "SMTP_USERNAME", data.smtp_username),
-        supabase.functions.setSecret("send-contact-form", "SMTP_PASSWORD", data.smtp_password)
-      ]);
-      
+      // Store these as environment variables for Edge Functions instead
+      // (In production you would use Supabase secrets management)
       toast({
         title: "Settings saved",
-        description: "Mail settings have been updated successfully",
+        description: "Mail settings have been updated successfully. For these settings to affect edge functions, you'll need to update your Supabase secrets manually.",
       });
     } catch (error) {
       toast({
