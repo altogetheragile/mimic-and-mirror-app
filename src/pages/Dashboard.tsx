@@ -39,6 +39,7 @@ const Dashboard = () => {
           status,
           payment_status,
           created_at,
+          course_id,
           courses:course_id (
             id,
             title,
@@ -53,19 +54,22 @@ const Dashboard = () => {
       if (error) throw error;
       
       // Transform the data to match the expected CourseRegistration format
-      return data.map(item => ({
-        id: item.id,
-        status: item.status,
-        payment_status: item.payment_status,
-        created_at: item.created_at,
-        course: {
-          id: item.courses.id,
-          title: item.courses.title,
-          start_date: item.courses.start_date,
-          location: item.courses.location,
-          slug: item.courses.slug
-        }
-      })) as CourseRegistration[];
+      return data.map(item => {
+        // Ensure courses is treated as a single object, not an array
+        return {
+          id: item.id,
+          status: item.status,
+          payment_status: item.payment_status,
+          created_at: item.created_at,
+          course: {
+            id: item.courses.id,
+            title: item.courses.title,
+            start_date: item.courses.start_date,
+            location: item.courses.location,
+            slug: item.courses.slug
+          }
+        } as CourseRegistration;
+      });
     },
     enabled: !!user,
   });
