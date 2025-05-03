@@ -68,7 +68,7 @@ const Dashboard = () => {
           start_date: item.course_id?.start_date,
           location: item.course_id?.location,
           slug: item.course_id?.slug,
-        },
+        }
       })) as CourseRegistration[];
     },
     enabled: !!user,
