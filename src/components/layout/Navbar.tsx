@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,13 +37,14 @@ const Navbar = () => {
     { name: "Contact", path: "/contact" },
   ];
 
+  // Only include the dashboard link, no longer need my-courses
   const authenticatedLinks = user
     ? [
         { name: "Dashboard", path: "/dashboard" },
-        { name: "My Courses", path: "/my-courses" },
       ]
     : [];
 
+  // Always include the admin link for admin users
   const adminLinks = isAdmin
     ? [{ name: "Admin", path: "/admin" }]
     : isInstructor
@@ -186,6 +188,22 @@ const Navbar = () => {
                 {link.name}
               </NavLink>
             ))}
+            
+            {/* Always show admin link for admin users */}
+            {isAdmin && (
+              <NavLink
+                to="/admin"
+                className={({ isActive }) =>
+                  `text-sm font-medium transition-colors ${
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`
+                }
+              >
+                Admin
+              </NavLink>
+            )}
           </nav>
         </div>
 

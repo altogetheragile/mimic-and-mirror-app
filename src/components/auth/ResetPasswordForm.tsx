@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -39,12 +39,19 @@ const ResetPasswordForm: React.FC = () => {
 
   // Function to extract hash parameters from the URL
   const getHashParams = () => {
+    // Handle both hash parameters and query parameters
     const hash = location.hash.substring(1); // Remove the leading #
-    const params = new URLSearchParams(hash);
+    const hashParams = new URLSearchParams(hash);
+    const queryParams = new URLSearchParams(location.search);
+
+    // Try to get access token from either hash or query params
+    const accessToken = 
+      hashParams.get('access_token') || 
+      queryParams.get('access_token');
+    
     return {
-      accessToken: params.get('access_token'),
-      refreshToken: params.get('refresh_token'),
-      type: params.get('type')
+      accessToken,
+      type: hashParams.get('type') || queryParams.get('type')
     };
   };
 
@@ -62,8 +69,10 @@ const ResetPasswordForm: React.FC = () => {
     setIsLoading(true);
     try {
       if (!accessToken) {
-        throw new Error("No access token found");
+        throw new Error("No access token found. Please request a new password reset link.");
       }
+
+      console.log("Attempting to reset password with token:", accessToken);
 
       // Set the session using the access token
       const { error: sessionError } = await supabase.auth.setSession({
@@ -71,25 +80,32 @@ const ResetPasswordForm: React.FC = () => {
         refresh_token: '', // We don't have a refresh token in this case
       });
 
-      if (sessionError) throw sessionError;
+      if (sessionError) {
+        console.error("Session error:", sessionError);
+        throw sessionError;
+      }
       
       // Update the password
       const { error } = await supabase.auth.updateUser({
         password: data.password,
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Update password error:", error);
+        throw error;
+      }
 
       toast({
         title: "Password updated",
-        description: "Your password has been updated successfully",
+        description: "Your password has been updated successfully. Please sign in with your new password.",
       });
       
       navigate("/login");
     } catch (error: any) {
+      console.error("Password reset failed:", error);
       toast({
         title: "Reset failed",
-        description: error.message || "Failed to update password",
+        description: error.message || "Failed to update password. The reset link may have expired. Please request a new one.",
         variant: "destructive",
       });
     } finally {

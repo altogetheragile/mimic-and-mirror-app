@@ -31,7 +31,7 @@ import ServiceDetail from "@/pages/ServiceDetail";
 import AdminDashboard from "@/pages/admin/AdminDashboard";
 import AdminCourses from "@/pages/admin/AdminCourses";
 import AdminCourseRegistrations from "@/pages/admin/AdminCourseRegistrations";
-import AdminCourseTemplates from "@/pages/admin/AdminCourseTemplates"; // New import
+import AdminCourseTemplates from "@/pages/admin/AdminCourseTemplates";
 import AdminUsers from "@/pages/admin/AdminUsers";
 import AdminTestimonials from "@/pages/admin/AdminTestimonials";
 import AdminSettings from "@/pages/admin/AdminSettings";
@@ -81,7 +81,8 @@ const App = () => (
                   <Route element={<ProtectedRoute />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/profile" element={<Profile />} />
-                    <Route path="/my-courses" element={<Dashboard />} />
+                    {/* Redirect from /my-courses to /dashboard */}
+                    <Route path="/my-courses" element={<Navigate to="/dashboard" replace />} />
                   </Route>
                   
                   {/* Special route for admin that redirects to /admin/dashboard */}
@@ -99,7 +100,7 @@ const App = () => (
                     <Route path="dashboard" element={<AdminDashboard />} />
                     <Route path="courses" element={<AdminCourses />} />
                     <Route path="courses/:courseId/registrations" element={<AdminCourseRegistrations />} />
-                    <Route path="course-templates" element={<AdminCourseTemplates />} /> {/* New route */}
+                    <Route path="course-templates" element={<AdminCourseTemplates />} />
                     <Route path="users" element={<AdminUsers />} />
                     <Route path="testimonials" element={<AdminTestimonials />} />
                     <Route path="blog" element={<AdminBlog />} />
