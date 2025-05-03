@@ -59,7 +59,13 @@ const Dashboard = () => {
         status: item.status,
         payment_status: item.payment_status,
         created_at: item.created_at,
-        course: item.courses // This is now handling a single course object, not an array
+        course: {
+          id: item.courses.id,
+          title: item.courses.title,
+          start_date: item.courses.start_date,
+          location: item.courses.location,
+          slug: item.courses.slug
+        }
       })) as CourseRegistration[];
     },
     enabled: !!user,
