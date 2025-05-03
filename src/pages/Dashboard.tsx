@@ -56,8 +56,8 @@ const Dashboard = () => {
       
       // Transform the data to match the expected CourseRegistration format
       return data.map(item => {
-        // Since Supabase returns the nested object with the field name 'courses'
-        const courseData = item.courses as Course; // explicitly cast to Course type
+        // Fix: Access the first element if it's an array or use directly if it's an object
+        const courseData = Array.isArray(item.courses) ? item.courses[0] : item.courses;
         
         return {
           id: item.id,
