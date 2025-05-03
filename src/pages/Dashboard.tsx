@@ -1,3 +1,4 @@
+
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
@@ -55,18 +56,20 @@ const Dashboard = () => {
       
       // Transform the data to match the expected CourseRegistration format
       return data.map(item => {
-        // Ensure courses is treated as a single object, not an array
+        // Since Supabase returns the nested object with the field name 'courses'
+        const courseData = item.courses as Course; // explicitly cast to Course type
+        
         return {
           id: item.id,
           status: item.status,
           payment_status: item.payment_status,
           created_at: item.created_at,
           course: {
-            id: item.courses.id,
-            title: item.courses.title,
-            start_date: item.courses.start_date,
-            location: item.courses.location,
-            slug: item.courses.slug
+            id: courseData.id,
+            title: courseData.title,
+            start_date: courseData.start_date,
+            location: courseData.location,
+            slug: courseData.slug
           }
         } as CourseRegistration;
       });
